@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Professional Inventory Management{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card hero-gradient text-white">
+            <div class="card-body py-5">
+                <div class="row align-items-center">
+                    <div class="col-lg-8">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-chart-line fa-3x me-4"></i>
+                            <div>
+                                <h1 class="display-5 fw-bold mb-2">Inventory Management Pro</h1>
+                                <p class="lead mb-0">Advanced analytics, predictive insights, and automated alerts for professional inventory optimization</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 text-lg-end">
+                        <i class="fas fa-boxes fa-4x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mb-5">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 text-center">
+            <div class="card-body py-5">
+                <div class="mb-4">
+                    <i class="fas fa-file-upload fa-3x text-primary mb-3"></i>
+                </div>
+                <h5 class="card-title fw-bold">Upload Inventory Data</h5>
+                <p class="card-text">Upload your CSV file containing product inventory data for comprehensive analysis and optimization recommendations.</p>
+                <a href="{{ url_for('upload_file') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-upload me-2"></i>Upload CSV File
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 text-center">
+            <div class="card-body py-5">
+                <div class="mb-4">
+                    <i class="fas fa-database fa-3x text-success mb-3"></i>
+                </div>
+                <h5 class="card-title fw-bold">Try Sample Data</h5>
+                <p class="card-text">Explore the system capabilities with our pre-loaded sample inventory data to see how the analytics work.</p>
+                <a href="{{ url_for('use_sample_data') }}" class="btn btn-success btn-lg">
+                    <i class="fas fa-play me-2"></i>Load Sample Data
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100 text-center">
+            <div class="card-body py-5">
+                <div class="mb-4">
+                    <i class="fas fa-envelope fa-3x text-warning mb-3"></i>
+                </div>
+                <h5 class="card-title fw-bold">Email Notifications</h5>
+                <p class="card-text">Configure automated email alerts for critical stock levels, overstocking, and inventory recommendations.</p>
+                <a href="{{ url_for('email_config_page') }}" class="btn btn-warning btn-lg text-white">
+                    <i class="fas fa-cog me-2"></i>Setup Alerts
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Features Overview -->
+<div class="row mb-5">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0 fw-bold">
+                    <i class="fas fa-star text-warning me-2"></i>Key Features
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <div class="d-flex mb-3">
+                            <div class="me-3">
+                                <i class="fas fa-chart-bar text-primary fa-lg"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-1">Real-time Analytics</h6>
+                                <p class="mb-0">Advanced stock level analysis with visual charts and trend identification</p>
+                            </div>
+                        </div>
+                        <div class="d-flex mb-3">
+                            <div class="me-3">
+                                <i class="fas fa-brain text-info fa-lg"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-1">Predictive Intelligence</h6>
+                                <p class="mb-0">AI-powered demand forecasting and automated reorder recommendations</p>
+                            </div>
+                        </div>
+                        <div class="d-flex mb-3">
+                            <div class="me-3">
+                                <i class="fas fa-bell text-warning fa-lg"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-1">Smart Alerts</h6>
+                                <p class="mb-0">Automated email notifications for critical stock situations and opportunities</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="d-flex mb-3">
+                            <div class="me-3">
+                                <i class="fas fa-file-export text-success fa-lg"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-1">Export & Reporting</h6>
+                                <p class="mb-0">Professional reports with actionable insights and export capabilities</p>
+                            </div>
+                        </div>
+                        <div class="d-flex mb-3">
+                            <div class="me-3">
+                                <i class="fas fa-mobile-alt text-primary fa-lg"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-1">Responsive Design</h6>
+                                <p class="mb-0">Access your inventory insights on any device, anywhere</p>
+                            </div>
+                        </div>
+                        <div class="d-flex mb-3">
+                            <div class="me-3">
+                                <i class="fas fa-shield-alt text-danger fa-lg"></i>
+                            </div>
+                            <div>
+                                <h6 class="fw-bold mb-1">Secure & Reliable</h6>
+                                <p class="mb-0">Enterprise-grade security with reliable data processing</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Requirements -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0 fw-bold">
+                    <i class="fas fa-table text-info me-2"></i>CSV Data Format Requirements
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-4">Ensure your CSV file contains the following columns for optimal analysis:</p>
+                
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th><i class="fas fa-tag me-2"></i>Column Name</th>
+                                <th><i class="fas fa-info-circle me-2"></i>Description</th>
+                                <th><i class="fas fa-code me-2"></i>Data Type</th>
+                                <th><i class="fas fa-eye me-2"></i>Example</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>product_id</code></td>
+                                <td>Unique product identifier</td>
+                                <td><span class="badge bg-info">String</span></td>
+                                <td>P001, SKU123, etc.</td>
+                            </tr>
+                            <tr>
+                                <td><code>product_name</code></td>
+                                <td>Product display name</td>
+                                <td><span class="badge bg-info">String</span></td>
+                                <td>Wireless Mouse, Laptop, etc.</td>
+                            </tr>
+                            <tr>
+                                <td><code>current_stock</code></td>
+                                <td>Current inventory quantity</td>
+                                <td><span class="badge bg-success">Number</span></td>
+                                <td>25, 150, 0, etc.</td>
+                            </tr>
+                            <tr>
+                                <td><code>ideal_stock_level</code></td>
+                                <td>Target inventory quantity</td>
+                                <td><span class="badge bg-success">Number</span></td>
+                                <td>50, 200, 75, etc.</td>
+                            </tr>
+                            <tr>
+                                <td><code>status</code></td>
+                                <td>Current inventory status</td>
+                                <td><span class="badge bg-warning">String</span></td>
+                                <td>Good, Low, Critical, Overstock</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

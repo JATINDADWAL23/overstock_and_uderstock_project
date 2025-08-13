@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Analysis in Progress - Professional Inventory Management{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <!-- Progress Header -->
+        <div class="text-center mb-4">
+            <i class="fas fa-cogs fa-3x text-primary mb-3"></i>
+            <h2 class="fw-bold mb-2">Analyzing Your Inventory</h2>
+            <p class="text-muted">Our AI is processing your data and generating insights...</p>
+        </div>
+
+        <!-- Progress Card -->
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0 fw-bold">
+                    <i class="fas fa-chart-line text-info me-2"></i>Analysis Progress
+                </h5>
+            </div>
+            <div class="card-body p-5 text-center">
+                <!-- Progress Bar -->
+                <div class="progress mb-4" style="height: 12px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary" 
+                         role="progressbar" style="width: 0%" id="progress-bar">
+                    </div>
+                </div>
+                
+                <!-- Status Text -->
+                <h5 id="status-text" class="fw-bold text-primary mb-3">Initializing analysis...</h5>
+                
+                <!-- Loading Spinner -->
+                <div id="spinner" class="mb-4">
+                    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                
+                <!-- Process Steps -->
+                <div class="row text-start">
+                    <div class="col-md-4">
+                        <div class="d-flex mb-3">
+                            <i class="fas fa-database text-muted me-3 mt-1"></i>
+                            <div>
+                                <h6 class="fw-bold mb-1">Data Processing</h6>
+                                <small class="text-muted">Validating and cleaning your inventory data</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex mb-3">
+                            <i class="fas fa-brain text-muted me-3 mt-1"></i>
+                            <div>
+                                <h6 class="fw-bold mb-1">AI Analysis</h6>
+                                <small class="text-muted">Running predictive algorithms and forecasting</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex mb-3">
+                            <i class="fas fa-chart-bar text-muted me-3 mt-1"></i>
+                            <div>
+                                <h6 class="fw-bold mb-1">Report Generation</h6>
+                                <small class="text-muted">Creating charts and recommendations</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Preview -->
+        {% if data_preview %}
+        <div class="card mt-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0 fw-bold">
+                    <i class="fas fa-eye text-secondary me-2"></i>Data Preview
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    {{ data_preview|safe }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const sessionId = "{{ session_id }}";
+let checkInterval;
+
+function checkAnalysisStatus() {
+    fetch(`/analysis-status/${sessionId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'completed') {
+                clearInterval(checkInterval);
+                showResults();
+            } else if (data.status === 'error') {
+                clearInterval(checkInterval);
+                showError(data.error || 'Unknown error occurred');
+            } else if (data.status === 'processing') {
+                updateProgress(75, 'Processing inventory analysis...');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            clearInterval(checkInterval);
+            showError('Failed to check analysis status');
+        });
+}
+
+function updateProgress(percent, text) {
+    document.getElementById('progress-bar').style.width = percent + '%';
+    document.getElementById('status-text').textContent = text;
+}
+
+function showResults() {
+    updateProgress(100, 'Analysis completed successfully!');
+    document.getElementById('spinner').innerHTML = `
+        <i class="fas fa-check-circle text-success fa-3x"></i>
+    `;
+    
+    setTimeout(() => {
+        window.location.href = '/results';
+    }, 2000);
+}
+
+function showError(error) {
+    updateProgress(0, 'Analysis failed');
+    document.getElementById('progress-bar').classList.add('bg-danger');
+    document.getElementById('spinner').innerHTML = `
+        <i class="fas fa-exclamation-triangle text-danger fa-3x"></i>
+        <p class="text-danger mt-3">${error}</p>
+    `;
+}
+
+// Start checking analysis status
+updateProgress(25, 'Starting analysis...');
+checkInterval = setInterval(checkAnalysisStatus, 2000);
+</script>
+{% endblock %}

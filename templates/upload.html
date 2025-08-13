@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Data - Professional Inventory Management{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <!-- Page Header -->
+        <div class="text-center mb-5">
+            <i class="fas fa-cloud-upload-alt fa-4x text-primary mb-3"></i>
+            <h2 class="fw-bold mb-2">Upload Inventory Data</h2>
+            <p class="text-muted">Upload your CSV file to start analyzing your inventory performance</p>
+        </div>
+
+        <!-- Upload Form Card -->
+        <div class="card">
+            <div class="card-header bg-light">
+                <h5 class="mb-0 fw-bold">
+                    <i class="fas fa-file-csv text-success me-2"></i>CSV File Upload
+                </h5>
+            </div>
+            <div class="card-body p-5">
+                <form method="POST" enctype="multipart/form-data" class="text-center">
+                    {{ form.hidden_tag() }}
+                    
+                    <!-- File Upload Area -->
+                    <div class="upload-area p-5 mb-4" style="border: 2px dashed #e2e8f0; border-radius: 12px; background: #f8fafc;">
+                        <i class="fas fa-file-upload fa-3x text-muted mb-3"></i>
+                        <h6 class="fw-bold mb-2">Select your CSV file</h6>
+                        <p class="text-muted mb-3">Drag and drop your file here or click to browse</p>
+                        
+                        <div class="mb-3">
+                            {{ form.file(class="form-control form-control-lg", accept=".csv") }}
+                        </div>
+                        
+                        {% if form.file.errors %}
+                            <div class="text-danger">
+                                {% for error in form.file.errors %}
+                                    <small><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <button type="submit" class="btn btn-primary btn-lg px-5">
+                        <i class="fas fa-rocket me-2"></i>Analyze Inventory
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Instructions Card -->
+        <div class="card mt-4">
+            <div class="card-header bg-light">
+                <h6 class="mb-0 fw-bold">
+                    <i class="fas fa-lightbulb text-warning me-2"></i>Upload Tips
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="fw-bold text-success">
+                            <i class="fas fa-check-circle me-2"></i>Best Practices
+                        </h6>
+                        <ul class="list-unstyled">
+                            <li class="mb-2"><i class="fas fa-arrow-right text-primary me-2"></i>Use UTF-8 encoding for special characters</li>
+                            <li class="mb-2"><i class="fas fa-arrow-right text-primary me-2"></i>Include column headers in the first row</li>
+                            <li class="mb-2"><i class="fas fa-arrow-right text-primary me-2"></i>Use numeric values for stock quantities</li>
+                            <li class="mb-2"><i class="fas fa-arrow-right text-primary me-2"></i>Keep file size under 16MB</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="fw-bold text-info">
+                            <i class="fas fa-info-circle me-2"></i>Supported Formats
+                        </h6>
+                        <ul class="list-unstyled">
+                            <li class="mb-2"><i class="fas fa-file-csv text-success me-2"></i>CSV files (.csv)</li>
+                            <li class="mb-2"><i class="fas fa-database text-primary me-2"></i>Comma-separated values</li>
+                            <li class="mb-2"><i class="fas fa-quote-right text-muted me-2"></i>Text fields in quotes (optional)</li>
+                            <li class="mb-2"><i class="fas fa-chart-line text-warning me-2"></i>Numeric data for analysis</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// File upload enhancement
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.querySelector('input[type="file"]');
+    const uploadArea = document.querySelector('.upload-area');
+    
+    if (fileInput && uploadArea) {
+        // Drag and drop functionality
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#2563eb';
+            uploadArea.style.backgroundColor = '#eff6ff';
+        });
+        
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#e2e8f0';
+            uploadArea.style.backgroundColor = '#f8fafc';
+        });
+        
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#e2e8f0';
+            uploadArea.style.backgroundColor = '#f8fafc';
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                updateFileName(files[0].name);
+            }
+        });
+        
+        fileInput.addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                updateFileName(e.target.files.name);
+            }
+        });
+        
+        function updateFileName(name) {
+            const nameDisplay = document.createElement('p');
+            nameDisplay.className = 'text-success mt-2 fw-bold';
+            nameDisplay.innerHTML = `<i class="fas fa-check me-2"></i>Selected: ${name}`;
+            
+            const existing = uploadArea.querySelector('.text-success');
+            if (existing) {
+                existing.remove();
+            }
+            uploadArea.appendChild(nameDisplay);
+        }
+    }
+});
+</script>
+{% endblock %}

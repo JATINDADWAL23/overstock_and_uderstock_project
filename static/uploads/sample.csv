@@ -1,0 +1,9 @@
+product_id,product_name,current_stock,ideal_stock_level,status
+P001,Laptop,25,50,Low
+P002,Mouse,150,100,Good
+P003,Keyboard,80,75,Good
+P004,Monitor,12,30,Critical
+P005,Headphones,200,120,Overstock
+P006,Tablet,45,60,Good
+P007,Webcam,8,40,Critical
+P008,Speaker,120,80,Overstock
