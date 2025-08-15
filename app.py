@@ -11,6 +11,8 @@ import os, io, uuid, base64, time
 from werkzeug.utils import secure_filename
 from threading import Thread
 from inventory_system import InventoryManagementSystem, EmailNotificationSystem
+from email_validator import validate_email, EmailNotValidError
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your-secret-key-change-this-in-production'
@@ -18,14 +20,30 @@ app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['TESTING'] = False
 app.config['MAIL_SUPPRESS_SEND'] = False
 
+
 # Create directories
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs('templates', exist_ok=True)
 os.makedirs('static/css', exist_ok=True)
 
+
 # Global variables
 analysis_results = {}
+
+
 email_config = {}
+
+
+# Helper functions for receiver email
+def set_receiver(address):
+    global email_config
+    email_config['recipient_emails'] = address
+    email_config['configured'] = True
+
+
+def get_receiver():
+    return email_config.get('recipient_emails', '')
+
 
 # Forms
 class EmailConfigForm(FlaskForm):
@@ -35,8 +53,10 @@ class EmailConfigForm(FlaskForm):
     sender_password = PasswordField('Sender Password', validators=[DataRequired()])
     recipient_emails = TextAreaField('Recipient Emails', validators=[DataRequired()])
 
+
 class FileUploadForm(FlaskForm):
     file = FileField('CSV File', validators=[FileRequired(), FileAllowed(['csv'])])
+
 
 def create_simple_chart(data):
     try:
@@ -66,6 +86,7 @@ def create_simple_chart(data):
     except Exception as e:
         plt.close()
         return None
+
 
 def process_analysis_async(data, session_id):
     try:
@@ -125,10 +146,29 @@ def process_analysis_async(data, session_id):
             'error': str(e)
         }
 
+
 # Routes
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+@app.route("/set-email", methods=["GET", "POST"])
+def set_email():
+    if request.method == "POST":
+        raw = request.form.get("email", "").strip()
+        try:
+            address = validate_email(raw, check_deliverability=True).email
+        except EmailNotValidError as err:
+            flash(f"Invalid address – {err}", "danger")
+            # Render template directly so error shows immediately (not after redirect)
+            return render_template("set_email.html", receiver=raw)
+        set_receiver(address)
+        flash(f"Receiver e-mail “{address}” saved!", "success")
+        return redirect(url_for("index"))
+    return render_template("set_email.html", receiver=get_receiver())
+
+
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_file():
@@ -156,6 +196,7 @@ def upload_file():
     
     return render_template('upload.html', form=form)
 
+
 @app.route('/sample-data')
 def use_sample_data():
     try:
@@ -170,6 +211,7 @@ def use_sample_data():
     except Exception as e:
         flash(f'Error loading sample data: {str(e)}', 'error')
         return redirect(url_for('index'))
+
 
 @app.route('/analyze')
 def analyze():
@@ -188,16 +230,18 @@ def analyze():
         thread.start()
         
         return render_template('analysis.html', 
-                             data_preview=session.get('data_preview', ''),
-                             session_id=session_id)
+                              data_preview=session.get('data_preview', ''),
+                              session_id=session_id)
     except Exception as e:
         flash(f'Analysis error: {str(e)}', 'error')
         return redirect(url_for('upload_file'))
+
 
 @app.route('/analysis-status/<session_id>')
 def analysis_status(session_id):
     result = analysis_results.get(session_id, {'status': 'not_found'})
     return jsonify(result)
+
 
 @app.route('/results')
 def results():
@@ -212,6 +256,7 @@ def results():
         return redirect(url_for('analyze'))
     
     return render_template('results.html', result=result)
+
 
 @app.route('/email-config', methods=['GET', 'POST'])
 def email_config_page():
@@ -237,6 +282,7 @@ def email_config_page():
         form.recipient_emails.data = email_config['recipient_emails']
     
     return render_template('email_config.html', form=form, configured=email_config.get('configured', False))
+
 
 @app.route('/test-email')
 def test_email():
@@ -285,6 +331,7 @@ def test_email():
         print(f"❌ {error_msg}")
         return jsonify({'success': False, 'message': error_msg})
 
+
 @app.route('/export-results/<session_id>')
 def export_results(session_id):
     if session_id not in analysis_results:
@@ -306,6 +353,7 @@ def export_results(session_id):
     except Exception as e:
         flash(f'Export error: {str(e)}', 'error')
         return redirect(url_for('results'))
+
 
 # Debug route for email testing
 @app.route('/debug-email')
@@ -398,6 +446,7 @@ def debug_email():
         </html>
         """
         return error_html
+
 
 if __name__ == '__main__':
     print("🚀 Starting Inventory Management System...")
