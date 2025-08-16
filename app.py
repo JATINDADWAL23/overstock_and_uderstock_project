@@ -1,457 +1,428 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash, send_file
-from flask_wtf import FlaskForm
-from flask_wtf.file import FileField, FileAllowed, FileRequired
-from wtforms import StringField, IntegerField, TextAreaField, PasswordField
-from wtforms.validators import DataRequired, Email
-import pandas as pd
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import os, io, uuid, base64, time
+from flask import Flask, render_template_string, request, redirect, url_for, flash, send_file
 from werkzeug.utils import secure_filename
-from threading import Thread
-from inventory_system import InventoryManagementSystem, EmailNotificationSystem
-from email_validator import validate_email, EmailNotValidError
-
+import os
+from inventory_system import EmailNotificationSystem, CSVExpirationManager
+from csv_expiration_processor import CSVExpirationProcessor
+from config import email_config
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-change-this-in-production'
-app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['TESTING'] = False
-app.config['MAIL_SUPPRESS_SEND'] = False
+app.secret_key = 'your_secret_key_here'  # Change this to a random secret key
 
+# Configure upload settings
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'csv'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
-# Create directories
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs('templates', exist_ok=True)
-os.makedirs('static/css', exist_ok=True)
+# Initialize systems
+csv_processor = CSVExpirationProcessor()
 
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# Global variables
-analysis_results = {}
+# Your existing routes...
 
+@app.route('/csv-expiration-dashboard')
+def csv_expiration_dashboard():
+    """CSV Expiration Management Dashboard"""
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>📅 CSV Expiration Dashboard</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+            .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            .card { border: 1px solid #ddd; padding: 20px; margin: 15px 0; border-radius: 8px; }
+            .upload-card { background-color: #e3f2fd; border-color: #2196f3; }
+            .sample-card { background-color: #fff8e1; border-color: #ff9800; }
+            .btn { display: inline-block; padding: 12px 25px; margin: 8px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; border: none; cursor: pointer; }
+            .btn:hover { background: #0056b3; }
+            .btn-success { background: #28a745; }
+            .btn-warning { background: #ffc107; color: black; }
+            .btn-danger { background: #dc3545; }
+            .file-input { margin: 10px 0; }
+            h1 { color: #333; margin-bottom: 30px; }
+            .info-box { background: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>📅 CSV Expiration Management Dashboard</h1>
+            
+            <div class="card upload-card">
+                <h3>📤 Upload Your CSV File</h3>
+                <p>Upload your inventory CSV file to check for expiring products and send alerts.</p>
+                
+                <form action="/upload-csv" method="post" enctype="multipart/form-data">
+                    <div class="file-input">
+                        <input type="file" name="csv_file" accept=".csv" required>
+                    </div>
+                    <button type="submit" class="btn btn-success">📤 Upload & Analyze CSV</button>
+                </form>
+                
+                <div class="info-box">
+                    <strong>📋 Required CSV Columns:</strong>
+                    <ul>
+                        <li><code>product_id</code> - Unique product identifier</li>
+                        <li><code>product_name</code> - Name of the product</li>
+                        <li><code>current_stock</code> - Current stock quantity</li>
+                        <li><code>ideal_stock_level</code> - Target stock level (optional)</li>
+                        <li><code>expiration_date</code> - Product expiry date (YYYY-MM-DD format)</li>
+                    </ul>
+                </div>
+            </div>
 
-email_config = {}
+            <div class="card sample-card">
+                <h3>📋 Sample Data & Testing</h3>
+                <p>Don't have a CSV file? Create sample data for testing the expiration alert system.</p>
+                
+                <a href="/create-sample-csv" class="btn btn-warning">📋 Create Sample CSV</a>
+                <a href="/download-csv-template" class="btn">📥 Download CSV Template</a>
+            </div>
 
+            <div class="card">
+                <h3>📊 Recent CSV Files</h3>
+                <p>Process previously uploaded CSV files.</p>
+                <a href="/list-csv-files" class="btn">📂 View Uploaded Files</a>
+            </div>
 
-# Helper functions for receiver email
-def set_receiver(address):
-    global email_config
-    email_config['recipient_emails'] = address
-    email_config['configured'] = True
+            <div class="card">
+                <h3>⚙️ Quick Actions</h3>
+                <a href="/test-csv-processor" class="btn">🧪 Test CSV Processor</a>
+                <a href="/validate-csv-format" class="btn">✅ Validate CSV Format</a>
+                <a href="/" class="btn" style="background: #6c757d;">← Back to Main Dashboard</a>
+            </div>
+        </div>
+    </body>
+    </html>
+    '''
 
-
-def get_receiver():
-    return email_config.get('recipient_emails', '')
-
-
-# Forms
-class EmailConfigForm(FlaskForm):
-    smtp_server = StringField('SMTP Server', validators=[DataRequired()], default='smtp.gmail.com')
-    smtp_port = IntegerField('SMTP Port', validators=[DataRequired()], default=587)
-    sender_email = StringField('Sender Email', validators=[DataRequired(), Email()])
-    sender_password = PasswordField('Sender Password', validators=[DataRequired()])
-    recipient_emails = TextAreaField('Recipient Emails', validators=[DataRequired()])
-
-
-class FileUploadForm(FlaskForm):
-    file = FileField('CSV File', validators=[FileRequired(), FileAllowed(['csv'])])
-
-
-def create_simple_chart(data):
+@app.route('/upload-csv', methods=['POST'])
+def upload_csv():
+    """Handle CSV file upload and processing"""
     try:
-        plt.figure(figsize=(10, 6))
-        products = [x['product_name'][:15] for x in data]
-        current = [x['current_stock'] for x in data]
-        ideal = [x['ideal_stock_level'] for x in data]
-        
-        x = range(len(products))
-        plt.bar([i-0.2 for i in x], current, 0.4, label='Current', color='#3b82f6', alpha=0.8)
-        plt.bar([i+0.2 for i in x], ideal, 0.4, label='Ideal', color='#10b981', alpha=0.8)
-        
-        plt.xlabel('Products')
-        plt.ylabel('Stock Quantity')
-        plt.title('Current vs Ideal Stock Levels')
-        plt.xticks(x, products, rotation=45, ha='right')
-        plt.legend()
-        plt.tight_layout()
-        
-        img_buffer = io.BytesIO()
-        plt.savefig(img_buffer, format='png', dpi=100, bbox_inches='tight')
-        img_buffer.seek(0)
-        img_data = base64.b64encode(img_buffer.getvalue()).decode()
-        plt.close()
-        
-        return f"data:image/png;base64,{img_data}"
-    except Exception as e:
-        plt.close()
-        return None
+        if 'csv_file' not in request.files:
+            return '''
+            <h1>❌ No File Selected</h1>
+            <p>Please select a CSV file to upload.</p>
+            <a href="/csv-expiration-dashboard">← Back to Dashboard</a>
+            '''
 
+        file = request.files['csv_file']
+        if file.filename == '':
+            return '''
+            <h1>❌ No File Selected</h1>
+            <p>Please select a CSV file to upload.</p>
+            <a href="/csv-expiration-dashboard">← Back to Dashboard</a>
+            '''
 
-def process_analysis_async(data, session_id):
-    try:
-        print(f"🔄 Starting analysis for session {session_id}")
-        ims = InventoryManagementSystem()
-        
-        # Run analysis
-        forecasts, recommendations, alerts = ims.run_analysis(data)
-        
-        # Convert to list for templates
-        recs_list = [recommendations[k] for k in recommendations]
-        
-        # Create simple chart
-        chart = create_simple_chart(recs_list) if recs_list else None
-        
-        analysis_results[session_id] = {
-            'status': 'completed',
-            'recommendations_list': recs_list,
-            'alerts': alerts,
-            'charts': {'stock_comparison': chart} if chart else {}
-        }
-        
-        print(f"✅ Analysis completed for session {session_id}")
-        
-        # Send email alerts if configured
-        if email_config.get('configured', False) and recommendations:
-            try:
-                print("📧 Email is configured - attempting to send alerts...")
-                email_system = EmailNotificationSystem()
-                recipients = [x.strip() for x in email_config['recipient_emails'].split(',') if x.strip()]
-                
-                print(f"📧 Email config: {email_config['smtp_server']}:{email_config['smtp_port']}")
-                print(f"📧 From: {email_config['sender_email']}")
-                print(f"📧 To: {recipients}")
-                
-                email_system.configure_email(
-                    email_config['smtp_server'], 
-                    email_config['smtp_port'],
-                    email_config['sender_email'], 
-                    email_config['sender_password'], 
-                    recipients
-                )
-                
-                ims.alert_system.enable_email_notifications(email_system)
-                ims.alert_system.send_bulk_alerts(recommendations)
-                print("📧 Email alerts processing completed")
-                
-            except Exception as e:
-                print(f"❌ Email sending failed: {e}")
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(file_path)
+            
+            # Process the uploaded CSV
+            analysis, message = csv_processor.process_uploaded_csv(file_path)
+            
+            if analysis:
+                return generate_csv_analysis_report(analysis, filename)
+            else:
+                return f'''
+                <h1>❌ CSV Processing Failed</h1>
+                <p><strong>Error:</strong> {message}</p>
+                <a href="/csv-expiration-dashboard">← Back to Dashboard</a>
+                '''
         else:
-            print("⚠️ Email not configured - skipping email alerts")
-                
+            return '''
+            <h1>❌ Invalid File Type</h1>
+            <p>Please upload a valid CSV file.</p>
+            <a href="/csv-expiration-dashboard">← Back to Dashboard</a>
+            '''
+
     except Exception as e:
-        print(f"❌ Analysis failed: {e}")
-        analysis_results[session_id] = {
-            'status': 'error',
-            'error': str(e)
-        }
+        return f'''
+        <h1>❌ Upload Error</h1>
+        <p><strong>Error:</strong> {str(e)}</p>
+        <a href="/csv-expiration-dashboard">← Back to Dashboard</a>
+        '''
 
-
-# Routes
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-
-@app.route("/set-email", methods=["GET", "POST"])
-def set_email():
-    if request.method == "POST":
-        raw = request.form.get("email", "").strip()
-        try:
-            address = validate_email(raw, check_deliverability=True).email
-        except EmailNotValidError as err:
-            flash(f"Invalid address – {err}", "danger")
-            # Render template directly so error shows immediately (not after redirect)
-            return render_template("set_email.html", receiver=raw)
-        set_receiver(address)
-        flash(f"Receiver e-mail “{address}” saved!", "success")
-        return redirect(url_for("index"))
-    return render_template("set_email.html", receiver=get_receiver())
-
-
-
-@app.route('/upload', methods=['GET', 'POST'])
-def upload_file():
-    form = FileUploadForm()
-    if form.validate_on_submit():
-        try:
-            filename = secure_filename(form.file.data.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], f"{int(time.time())}_{filename}")
-            form.file.data.save(filepath)
-            
-            data = pd.read_csv(filepath)
-            required_cols = ['product_id', 'product_name', 'current_stock', 'ideal_stock_level', 'status']
-            
-            for col in required_cols:
-                if col not in data.columns:
-                    flash(f'Missing required column: {col}', 'error')
-                    return render_template('upload.html', form=form)
-            
-            session['uploaded_file'] = filepath
-            session['data_preview'] = data.head().to_html(classes='table table-striped table-sm')
-            flash(f'Successfully loaded {len(data)} products!', 'success')
-            return redirect(url_for('analyze'))
-        except Exception as e:
-            flash(f'Error loading file: {str(e)}', 'error')
+def generate_csv_analysis_report(analysis, filename):
+    """Generate HTML report for CSV analysis"""
+    expired_count = len(analysis['expired_products'])
+    expiring_soon_count = len(analysis['expiring_soon'])
+    expiring_month_count = len(analysis['expiring_month'])
     
-    return render_template('upload.html', form=form)
+    # Create detailed tables
+    expired_table = create_product_table(analysis['expired_products'], 'expired')
+    expiring_table = create_product_table(analysis['expiring_soon'], 'expiring-soon')
+    
+    return f'''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>📊 CSV Analysis Report</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }}
+            .container {{ background: white; padding: 30px; border-radius: 10px; }}
+            .summary {{ display: flex; gap: 20px; margin: 20px 0; }}
+            .stat-card {{ flex: 1; padding: 20px; border-radius: 8px; text-align: center; }}
+            .expired {{ background-color: #ffebee; border: 2px solid #f44336; }}
+            .expiring {{ background-color: #fff8e1; border: 2px solid #ff9800; }}
+            .normal {{ background-color: #e8f5e8; border: 2px solid #4caf50; }}
+            .btn {{ display: inline-block; padding: 12px 25px; margin: 8px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }}
+            .btn-danger {{ background: #dc3545; }}
+            .btn-warning {{ background: #ffc107; color: black; }}
+            table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}
+            th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+            th {{ background-color: #f2f2f2; }}
+            .expired-row {{ background-color: #ffcccc; }}
+            .expiring-row {{ background-color: #fff3cd; }}
+            h1, h2 {{ color: #333; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>📊 CSV Expiration Analysis Report</h1>
+            <p><strong>File:</strong> {filename}</p>
+            <p><strong>Analyzed on:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
 
+            <div class="summary">
+                <div class="stat-card expired">
+                    <h3>🔴 EXPIRED</h3>
+                    <h2>{expired_count}</h2>
+                    <p>Products</p>
+                </div>
+                <div class="stat-card expiring">
+                    <h3>🟡 EXPIRING SOON</h3>
+                    <h2>{expiring_soon_count}</h2>
+                    <p>Within 7 days</p>
+                </div>
+                <div class="stat-card normal">
+                    <h3>📅 TOTAL WITH EXPIRY</h3>
+                    <h2>{analysis['products_with_expiry']}</h2>
+                    <p>Out of {analysis['total_products']}</p>
+                </div>
+            </div>
 
-@app.route('/sample-data')
-def use_sample_data():
+            <h2>🚨 Action Required</h2>
+            <div style="margin: 20px 0;">
+                <a href="/send-csv-alerts/{filename}" class="btn btn-danger">📧 Send Expired Products Alert</a>
+                <a href="/send-csv-expiring-alerts/{filename}" class="btn btn-warning">📧 Send Expiring Products Alert</a>
+                <a href="/download-csv-report/{filename}" class="btn">📥 Download Full Report</a>
+            </div>
+
+            {expired_table}
+            {expiring_table}
+
+            <h2>📈 Summary Statistics</h2>
+            <ul>
+                <li>Total Products in CSV: {analysis['total_products']}</li>
+                <li>Products with Expiration Dates: {analysis['products_with_expiry']}</li>
+                <li>Expired Products: {expired_count}</li>
+                <li>Expiring Soon (≤7 days): {expiring_soon_count}</li>
+                <li>Expiring This Month (≤30 days): {expiring_month_count}</li>
+            </ul>
+
+            <div style="margin-top: 40px;">
+                <a href="/csv-expiration-dashboard" class="btn">← Back to CSV Dashboard</a>
+            </div>
+        </div>
+    </body>
+    </html>
+    '''
+
+def create_product_table(products, table_type):
+    """Create HTML table for products"""
+    if not products:
+        return f'<p>✅ No {table_type} products found.</p>'
+    
+    title = "🔴 EXPIRED PRODUCTS" if table_type == 'expired' else "🟡 EXPIRING SOON"
+    row_class = 'expired-row' if table_type == 'expired' else 'expiring-row'
+    
+    table = f'''
+    <h2>{title} ({len(products)})</h2>
+    <table>
+        <tr>
+            <th>Product ID</th>
+            <th>Product Name</th>
+            <th>Current Stock</th>
+            <th>Expiration Date</th>
+            <th>Days to Expire</th>
+            <th>Recommended Action</th>
+        </tr>
+    '''
+    
+    for product in products:
+        days = product['days_to_expire']
+        days_display = f"{abs(days)} days ago" if days < 0 else f"{days} days"
+        
+        table += f'''
+        <tr class="{row_class}">
+            <td>{product['product_id']}</td>
+            <td>{product['product_name']}</td>
+            <td>{product['current_stock']:.0f}</td>
+            <td>{product['expiration_date']}</td>
+            <td>{days_display}</td>
+            <td>{product['action']}</td>
+        </tr>
+        '''
+    
+    table += '</table>'
+    return table
+
+@app.route('/create-sample-csv')
+def create_sample_csv():
+    """Create sample CSV file for testing"""
     try:
-        ims = InventoryManagementSystem()
-        data = ims.create_sample_data()
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], f'sample_{int(time.time())}.csv')
-        data.to_csv(filepath, index=False)
-        session['uploaded_file'] = filepath
-        session['data_preview'] = data.to_html(classes='table table-striped table-sm')
-        flash('Sample data loaded successfully!', 'success')
-        return redirect(url_for('analyze'))
+        sample_file = csv_processor.create_sample_csv()
+        if sample_file:
+            return f'''
+            <h1>✅ Sample CSV Created Successfully!</h1>
+            <p><strong>File:</strong> {sample_file}</p>
+            <p>Sample CSV contains products with various expiration statuses for testing.</p>
+            
+            <div style="margin: 20px 0;">
+                <a href="/process-csv/{os.path.basename(sample_file)}" style="display: inline-block; padding: 10px 20px; background: #28a745; color: white; text-decoration: none; border-radius: 5px;">📊 Process Sample CSV</a>
+                <a href="/csv-expiration-dashboard" style="display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; margin-left: 10px;">← Back to Dashboard</a>
+            </div>
+            '''
+        else:
+            return '''
+            <h1>❌ Failed to Create Sample CSV</h1>
+            <p>There was an error creating the sample file.</p>
+            <a href="/csv-expiration-dashboard">← Back to Dashboard</a>
+            '''
     except Exception as e:
-        flash(f'Error loading sample data: {str(e)}', 'error')
-        return redirect(url_for('index'))
+        return f'''
+        <h1>❌ Error Creating Sample CSV</h1>
+        <p><strong>Error:</strong> {str(e)}</p>
+        <a href="/csv-expiration-dashboard">← Back to Dashboard</a>
+        '''
 
-
-@app.route('/analyze')
-def analyze():
-    if 'uploaded_file' not in session:
-        flash('Please upload data first', 'warning')
-        return redirect(url_for('upload_file'))
-    
+@app.route('/process-csv/<filename>')
+def process_existing_csv(filename):
+    """Process an existing CSV file"""
     try:
-        data = pd.read_csv(session['uploaded_file'])
-        session_id = str(uuid.uuid4())
-        session['analysis_id'] = session_id
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        if not os.path.exists(file_path):
+            return '''
+            <h1>❌ File Not Found</h1>
+            <p>The specified CSV file was not found.</p>
+            <a href="/csv-expiration-dashboard">← Back to Dashboard</a>
+            '''
         
-        analysis_results[session_id] = {'status': 'processing'}
-        thread = Thread(target=process_analysis_async, args=(data, session_id))
-        thread.daemon = True
-        thread.start()
-        
-        return render_template('analysis.html', 
-                              data_preview=session.get('data_preview', ''),
-                              session_id=session_id)
+        analysis, message = csv_processor.process_uploaded_csv(file_path)
+        if analysis:
+            return generate_csv_analysis_report(analysis, filename)
+        else:
+            return f'''
+            <h1>❌ Processing Failed</h1>
+            <p><strong>Error:</strong> {message}</p>
+            <a href="/csv-expiration-dashboard">← Back to Dashboard</a>
+            '''
     except Exception as e:
-        flash(f'Analysis error: {str(e)}', 'error')
-        return redirect(url_for('upload_file'))
+        return f'''
+        <h1>❌ Processing Error</h1>
+        <p><strong>Error:</strong> {str(e)}</p>
+        <a href="/csv-expiration-dashboard">← Back to Dashboard</a>
+        '''
 
-
-@app.route('/analysis-status/<session_id>')
-def analysis_status(session_id):
-    result = analysis_results.get(session_id, {'status': 'not_found'})
-    return jsonify(result)
-
-
-@app.route('/results')
-def results():
-    session_id = session.get('analysis_id')
-    if not session_id or session_id not in analysis_results:
-        flash('No analysis results found', 'warning')
-        return redirect(url_for('index'))
-    
-    result = analysis_results[session_id]
-    if result['status'] != 'completed':
-        flash('Analysis not completed yet', 'info')
-        return redirect(url_for('analyze'))
-    
-    return render_template('results.html', result=result)
-
-
-@app.route('/email-config', methods=['GET', 'POST'])
-def email_config_page():
-    form = EmailConfigForm()
-    if form.validate_on_submit():
-        global email_config
-        email_config = {
-            'smtp_server': form.smtp_server.data,
-            'smtp_port': form.smtp_port.data,
-            'sender_email': form.sender_email.data,
-            'sender_password': form.sender_password.data,
-            'recipient_emails': form.recipient_emails.data,
-            'configured': True
-        }
-        flash('Email configuration saved successfully!', 'success')
-        return redirect(url_for('email_config_page'))
-    
-    # Pre-populate form
-    if email_config.get('configured', False):
-        form.smtp_server.data = email_config['smtp_server']
-        form.smtp_port.data = email_config['smtp_port'] 
-        form.sender_email.data = email_config['sender_email']
-        form.recipient_emails.data = email_config['recipient_emails']
-    
-    return render_template('email_config.html', form=form, configured=email_config.get('configured', False))
-
-
-@app.route('/test-email')
-def test_email():
-    if not email_config.get('configured', False):
-        return jsonify({'success': False, 'message': 'Email not configured. Please configure email settings first.'})
-    
+@app.route('/send-csv-alerts/<filename>')
+def send_csv_alerts(filename):
+    """Send alerts for specific CSV file"""
     try:
-        print("🧪 Testing email configuration...")
-        email_system = EmailNotificationSystem()
-        recipients = [x.strip() for x in email_config['recipient_emails'].split(',') if x.strip()]
-        
-        print(f"📧 Test email config:")
-        print(f"   Server: {email_config['smtp_server']}:{email_config['smtp_port']}")
-        print(f"   From: {email_config['sender_email']}")
-        print(f"   To: {recipients}")
-        
-        email_system.configure_email(
-            email_config['smtp_server'], 
-            email_config['smtp_port'],
-            email_config['sender_email'], 
-            email_config['sender_password'], 
-            recipients
-        )
-        
-        test_data = [{
-            'product_id': 'TEST001',
-            'product_name': 'Test Product for Email Verification',
-            'current_stock': 10,
-            'ideal_stock_level': 50,
-            'stock_ratio': 0.2,
-            'action': 'This is a test email from your Flask Inventory Management System',
-            'order_quantity': 40
-        }]
-        
-        success, message = email_system.send_stock_alert('critical', test_data)
+        file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        success, results = csv_processor.send_expiration_alerts_for_csv(file_path)
         
         if success:
-            print("✅ Test email sent successfully!")
+            html = f'''
+            <h1>✅ Expiration Alerts Sent Successfully!</h1>
+            <p><strong>File:</strong> {filename}</p>
+            <p><strong>Time:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+            
+            <h3>📧 Alert Results:</h3>
+            '''
+            
+            if isinstance(results, list):
+                for alert_type, count, email_success, message in results:
+                    status_icon = "✅" if email_success else "❌"
+                    html += f'<p>{status_icon} <strong>{alert_type.replace("_", " ").title()}:</strong> {count} products - {message}</p>'
+            else:
+                html += f'<p>ℹ️ {results}</p>'
+            
+            html += '''
+            <div style="margin-top: 30px;">
+                <a href="/csv-expiration-dashboard" style="display: inline-block; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 5px;">← Back to Dashboard</a>
+            </div>
+            '''
+            return html
         else:
-            print(f"❌ Test email failed: {message}")
-        
-        return jsonify({'success': success, 'message': message})
-        
+            return f'''
+            <h1>❌ Failed to Send Alerts</h1>
+            <p><strong>Error:</strong> {results}</p>
+            <a href="/csv-expiration-dashboard">← Back to Dashboard</a>
+            '''
+            
     except Exception as e:
-        error_msg = f"Test email failed: {str(e)}"
-        print(f"❌ {error_msg}")
-        return jsonify({'success': False, 'message': error_msg})
+        return f'''
+        <h1>❌ Alert Error</h1>
+        <p><strong>Error:</strong> {str(e)}</p>
+        <a href="/csv-expiration-dashboard">← Back to Dashboard</a>
+        '''
 
-
-@app.route('/export-results/<session_id>')
-def export_results(session_id):
-    if session_id not in analysis_results:
-        flash('No results to export', 'error')
-        return redirect(url_for('index'))
-    
-    result = analysis_results[session_id]
-    if result['status'] != 'completed':
-        flash('Analysis not completed', 'error') 
-        return redirect(url_for('index'))
-    
-    try:
-        df = pd.DataFrame(result['recommendations_list'])
-        filename = f'inventory_analysis_{int(time.time())}.csv'
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        df.to_csv(filepath, index=False)
-        
-        return send_file(filepath, as_attachment=True, download_name=filename)
-    except Exception as e:
-        flash(f'Export error: {str(e)}', 'error')
-        return redirect(url_for('results'))
-
-
-# Debug route for email testing
-@app.route('/debug-email')
-def debug_email():
-    if not email_config.get('configured', False):
-        return """
-        <h2>❌ Email Not Configured</h2>
-        <p>Please configure your email settings first:</p>
-        <a href="/email-config">Configure Email Settings</a>
-        """
-    
-    try:
-        print("🔧 EMAIL DEBUG MODE")
-        print("=" * 50)
-        
-        email_system = EmailNotificationSystem()
-        recipients = [x.strip() for x in email_config['recipient_emails'].split(',') if x.strip()]
-        
-        print(f"📧 SMTP Server: {email_config['smtp_server']}")
-        print(f"📧 SMTP Port: {email_config['smtp_port']}")
-        print(f"📧 Sender Email: {email_config['sender_email']}")
-        print(f"📧 Recipients: {recipients}")
-        print(f"📧 Password Length: {len(email_config['sender_password'])} characters")
-        
-        email_system.configure_email(
-            email_config['smtp_server'], 
-            email_config['smtp_port'],
-            email_config['sender_email'], 
-            email_config['sender_password'], 
-            recipients
-        )
-        
-        test_data = [{
-            'product_id': 'DEBUG001',
-            'product_name': 'Debug Test Product',
-            'current_stock': 5,
-            'ideal_stock_level': 100,
-            'stock_ratio': 0.05,
-            'action': 'DEBUG: This is a test email with detailed logging',
-            'order_quantity': 95
-        }]
-        
-        print("\n🚀 Attempting to send test email...")
-        success, message = email_system.send_stock_alert('critical', test_data)
-        
-        result_html = f"""
-        <html>
-        <head><title>Email Debug Results</title></head>
-        <body style="font-family: Arial; padding: 20px;">
-            <h2>📧 Email Debug Results</h2>
-            <div style="background: {'#d4edda' if success else '#f8d7da'}; padding: 15px; border-radius: 5px; margin: 10px 0;">
-                <h3>{'✅ SUCCESS' if success else '❌ FAILED'}</h3>
-                <p><strong>Message:</strong> {message}</p>
+# Add to your main route
+@app.route('/')
+def dashboard():
+    return '''
+    <html>
+    <head>
+        <title>Inventory Management System</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+            .container { background: white; padding: 30px; border-radius: 10px; }
+            .card { border: 1px solid #ddd; padding: 20px; margin: 15px 0; border-radius: 8px; }
+            .btn { display: inline-block; padding: 12px 25px; margin: 8px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }
+            .btn-success { background: #28a745; }
+            .btn-warning { background: #ffc107; color: black; }
+            h1 { color: #333; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🏢 Inventory Management System</h1>
+            
+            <div class="card">
+                <h3>📊 Stock Management</h3>
+                <p>Manage stock levels and send alerts for critical inventory.</p>
+                <a href="/debug-email" class="btn">🧪 Test Email System</a>
             </div>
-            
-            <h3>Configuration Details:</h3>
-            <ul>
-                <li><strong>SMTP Server:</strong> {email_config['smtp_server']}</li>
-                <li><strong>SMTP Port:</strong> {email_config['smtp_port']}</li>
-                <li><strong>Sender Email:</strong> {email_config['sender_email']}</li>
-                <li><strong>Recipients:</strong> {', '.join(recipients)}</li>
-                <li><strong>Password Length:</strong> {len(email_config['sender_password'])} characters</li>
-            </ul>
-            
-            <h3>Troubleshooting Tips:</h3>
-            <ul>
-                <li>For Gmail: Use App Password (not regular password)</li>
-                <li>Enable 2-Factor Authentication on Gmail</li>
-                <li>Check that recipient emails are valid</li>
-                <li>Verify network/firewall settings</li>
-            </ul>
-            
-            <p><a href="/email-config">← Back to Email Configuration</a></p>
-        </body>
-        </html>
-        """
-        
-        return result_html
-        
-    except Exception as e:
-        error_html = f"""
-        <html>
-        <body style="font-family: Arial; padding: 20px;">
-            <h2>❌ Email Debug Error</h2>
-            <div style="background: #f8d7da; padding: 15px; border-radius: 5px;">
-                <p><strong>Error:</strong> {str(e)}</p>
-            </div>
-            <p><a href="/email-config">← Back to Email Configuration</a></p>
-        </body>
-        </html>
-        """
-        return error_html
 
+            <div class="card">
+                <h3>📅 CSV Expiration Management</h3>
+                <p>Upload your CSV files to check for expiring products and send automated alerts.</p>
+                <a href="/csv-expiration-dashboard" class="btn btn-success">📤 Upload CSV & Check Expiration</a>
+                <a href="/create-sample-csv" class="btn btn-warning">📋 Create Sample CSV</a>
+            </div>
+
+            <div class="card">
+                <h3>⚙️ System Status</h3>
+                <p>✅ Email System: Configured</p>
+                <p>✅ CSV Processor: Ready</p>
+                <p>✅ Expiration Alerts: Active</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    '''
 
 if __name__ == '__main__':
-    print("🚀 Starting Inventory Management System...")
-    print("📍 Main Dashboard: http://127.0.0.1:5000")
-    print("📍 Email Debug: http://127.0.0.1:5000/debug-email")
-    print("=" * 50)
+    # Ensure upload folder exists
+    if not os.path.exists(UPLOAD_FOLDER):
+        os.makedirs(UPLOAD_FOLDER)
     
+    print("🚀 Starting Inventory Management System with CSV Expiration Support...")
+    print("📍 Main Dashboard: http://127.0.0.1:5000")
+    print("📍 CSV Expiration Dashboard: http://127.0.0.1:5000/csv-expiration-dashboard")
+    print("=" * 70)
     app.run(debug=True, host='0.0.0.0', port=5000)
