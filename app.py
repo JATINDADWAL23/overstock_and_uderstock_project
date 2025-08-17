@@ -774,6 +774,95 @@ def clear_all_analyses():
     
     return redirect(url_for('previous_analyses'))
 
+@app.route('/send-alert/<filename>', methods=['POST'])
+def send_alert(filename):
+    """Send BOTH inventory and expiry alerts for specific analysis file"""
+    try:
+        filepath = os.path.join(app.config['RESULTS_FOLDER'], filename)
+        if not os.path.exists(filepath):
+            flash('❌ Analysis not found!', 'error')
+            return redirect(url_for('previous_analyses'))
+        
+        # Load the analysis data
+        with open(filepath, 'r') as f:
+            data = json.load(f)
+        
+        recommendations = data.get('recommendations', [])
+        receiver_email = get_receiver_email()
+        
+        if not receiver_email:
+            flash('⚠️ Email not configured!', 'warning')
+            return redirect(url_for('previous_analyses'))
+        
+        alerts_sent = []
+        
+        # 1. Send inventory alert (always)
+        try:
+            send_inventory_alert(recommendations, receiver_email)
+            alerts_sent.append("📦 Inventory Alert")
+        except Exception as e:
+            print(f"Error sending inventory alert: {e}")
+        
+        # 2. Send expiry alert (if there are items with expiry dates)
+        expiry_items = []
+        for item in recommendations:
+            if (item.get('days_left') and 
+                item.get('days_left') != '' and 
+                item.get('days_left') != 'N/A' and
+                item.get('expiry_date') and 
+                item.get('expiry_date') != ''):
+                expiry_items.append(item)
+        
+        if expiry_items:
+            try:
+                send_expiry_alert(expiry_items, receiver_email)
+                alerts_sent.append("⏰ Expiry Alert")
+            except Exception as e:
+                print(f"Error sending expiry alert: {e}")
+        
+        # Show success message
+        if alerts_sent:
+            alerts_text = " & ".join(alerts_sent)
+            flash(f'✅ {alerts_text} sent successfully!', 'success')
+        else:
+            flash('⚠️ No alerts sent - check email configuration.', 'warning')
+            
+        return redirect(url_for('previous_analyses'))
+        
+    except Exception as e:
+        flash(f'❌ Error sending alerts: {str(e)}', 'error')
+        return redirect(url_for('previous_analyses'))
+     
+    
+@app.route('/send-current-alert', methods=['POST'])
+def send_current_alert():
+    """Send alert for current loaded results"""
+    try:
+        result_data = load_results()
+        if not result_data:
+            flash('❌ No current results to send!', 'error')
+            return redirect(url_for('results'))
+        
+        recommendations = result_data.get('recommendations', [])
+        receiver_email = get_receiver_email()
+        
+        if not receiver_email:
+            flash('⚠️ Email not configured!', 'warning')
+            return redirect(url_for('results'))
+        
+        success = send_inventory_alert(recommendations, receiver_email)
+        
+        if success:
+            flash('✅ Alert email sent successfully!', 'success')
+        else:
+            flash('❌ Failed to send alert email.', 'error')
+            
+        return redirect(url_for('results'))
+        
+    except Exception as e:
+        flash(f'❌ Error: {str(e)}', 'error')
+        return redirect(url_for('results'))
+
 @app.route('/')
 def index():
     email = get_receiver_email()

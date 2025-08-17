@@ -135,17 +135,23 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <div class="btn-group" role="group">
-                                        <a href="{{ url_for('view_previous_analysis', filename=analysis.filename) }}" 
-                                           class="btn btn-sm btn-primary me-2">
-                                            <i class="fas fa-eye me-1"></i>View
-                                        </a>
-                                        <button class="btn btn-sm btn-delete" 
-                                                onclick="confirmDelete('{{ analysis.filename }}', '{{ analysis.source_file }}')">
-                                            <i class="fas fa-trash me-1"></i>Delete
-                                        </button>
-                                    </div>
-                                </td>
+    <div class="btn-group" role="group">
+        <a href="{{ url_for('view_previous_analysis', filename=analysis.filename) }}" 
+           class="btn btn-sm btn-primary me-2">
+            <i class="fas fa-eye me-1"></i>View
+        </a>
+        <form method="POST" action="{{ url_for('send_alert', filename=analysis.filename) }}" style="display:inline;">
+            <button type="submit" class="btn btn-sm btn-info me-2">
+                <i class="fas fa-envelope me-1"></i>Send Alert
+            </button>
+        </form>
+        <button class="btn btn-sm btn-delete" 
+                onclick="confirmDelete('{{ analysis.filename }}', '{{ analysis.source_file }}')">
+            <i class="fas fa-trash me-1"></i>Delete
+        </button>
+    </div>
+</td>
+
                             </tr>
                         {% endfor %}
                         </tbody>
