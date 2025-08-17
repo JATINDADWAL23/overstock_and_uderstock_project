@@ -1,144 +1,122 @@
-{% extends "base.html" %}
-
-{% block title %}Upload Data - Professional Inventory Management{% endblock %}
-
-{% block content %}
-<div class="row justify-content-center">
-    <div class="col-lg-8">
-        <!-- Page Header -->
-        <div class="text-center mb-5">
-            <i class="fas fa-cloud-upload-alt fa-4x text-primary mb-3"></i>
-            <h2 class="fw-bold mb-2">Upload Inventory Data</h2>
-            <p class="text-muted">Upload your CSV file to start analyzing your inventory performance</p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Data Upload Center - InventoryPro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background: linear-gradient(120deg,#f8fafc 0%, #e0e7ff 100%); }
+        .main-card {
+            width: 100%;
+            max-width: 1040px;
+            margin: 48px auto 0 auto;
+            border-radius: 18px;
+            box-shadow: 0 8px 32px rgba(44,62,80,0.12), 0 1.5px 8px rgba(80,110,240,0.06);
+            background: #fff;
+        }
+        .upload-icon { font-size: 3.4rem; color: #287de0; }
+        .navbar {
+            background: linear-gradient(90deg, #a7bfe8 0%, #f6d365 100%);
+            box-shadow: 0 3px 16px rgba(100,120,180,.08);
+            border-bottom-left-radius: 14px; border-bottom-right-radius: 14px;
+        }
+        .navbar .navbar-brand { font-weight: 700; color: #28508f !important; }
+        .navbar .btn {
+            border-radius: 18px;
+            margin-right: 12px;
+            background-color: #ffffffa8;
+            color: #28508f;
+            border: none;
+            transition: background 0.18s;
+        }
+        .navbar .btn:hover { color: #fff; background: #4e8fff; }
+        .row.sample-block { margin-left:0; margin-right:0; }
+        .sample-block {
+            background: #f3f6fd;
+            border-radius: 12px;
+            padding: 1rem;
+        }
+        .sample-block h6 { color: #287de0; font-size: .99rem; }
+        .sample-code { background: #fff; border-radius: 8px; font-size: 1rem; font-family: monospace; padding: 8px 9px; }
+        .required-label { color: #176078; font-weight: 600; margin-bottom: 0.6rem; }
+        .history-card { margin: 42px auto 0 auto; max-width: 1040px; border-radius:18px; box-shadow: 0 8px 32px rgba(44,62,80,0.07);}
+        @media (max-width: 991px) {
+            .main-card { max-width:99vw; margin-left:3vw; margin-right:3vw;}
+            .history-card { max-width:99vw; margin-left:3vw; margin-right:3vw;}
+        }
+        @media (max-width:575px){
+            .main-card,.history-card{margin:6vw 0;}
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{{ url_for('index') }}">
+            <i class="fas fa-cubes me-1"></i> InventoryPro
+        </a>
+        <div class="d-flex flex-wrap">
+            <a class="btn me-2 mb-1" href="{{ url_for('index') }}"><i class="fas fa-home"></i> Dashboard</a>
+            <a class="btn mb-1" href="{{ url_for('results') }}"><i class="fas fa-chart-bar"></i> Analysis</a>
         </div>
-
-        <!-- Upload Form Card -->
-        <div class="card">
-            <div class="card-header bg-light">
-                <h5 class="mb-0 fw-bold">
-                    <i class="fas fa-file-csv text-success me-2"></i>CSV File Upload
-                </h5>
+    </div>
+</nav>
+<div class="main-card card shadow">
+    <div class="card-header text-white text-center" style="background: linear-gradient(90deg,#287de0,#608bff 90%); border-top-left-radius:18px; border-top-right-radius:18px;">
+        <h3 class="fw-bold mb-0"><i class="fas fa-upload me-2"></i> Data Upload Center</h3>
+    </div>
+    <div class="card-body">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'success' if category in ['success','info'] else 'danger' }} alert-dismissible fade show mb-4" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+        <form method="POST" enctype="multipart/form-data">
+            {{ form.hidden_tag() }}
+            <div class="mb-3 text-center">
+                <i class="fas fa-file-csv upload-icon mb-2"></i><br>
+                {{ form.file(class_="form-control mb-2") }}
+                <label class="form-label fw-semibold text-muted">Supported: CSV files only, Max size 50MB</label>
             </div>
-            <div class="card-body p-5">
-                <form method="POST" enctype="multipart/form-data" class="text-center">
-                    {{ form.hidden_tag() }}
-                    
-                    <!-- File Upload Area -->
-                    <div class="upload-area p-5 mb-4" style="border: 2px dashed #e2e8f0; border-radius: 12px; background: #f8fafc;">
-                        <i class="fas fa-file-upload fa-3x text-muted mb-3"></i>
-                        <h6 class="fw-bold mb-2">Select your CSV file</h6>
-                        <p class="text-muted mb-3">Drag and drop your file here or click to browse</p>
-                        
-                        <div class="mb-3">
-                            {{ form.file(class="form-control form-control-lg", accept=".csv") }}
-                        </div>
-                        
-                        {% if form.file.errors %}
-                            <div class="text-danger">
-                                {% for error in form.file.errors %}
-                                    <small><i class="fas fa-exclamation-circle me-1"></i>{{ error }}</small>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                    
-                    <!-- Submit Button -->
-                    <button type="submit" class="btn btn-primary btn-lg px-5">
-                        <i class="fas fa-rocket me-2"></i>Analyze Inventory
-                    </button>
-                </form>
+            <div class="d-grid gap-2 mb-3">
+                <button type="submit" class="btn btn-primary btn-lg" style="border-radius:12px;">
+                    <i class="fas fa-upload me-2"></i>Upload & Analyze
+                </button>
+                <a href="{{ url_for('index') }}" class="btn btn-outline-dark btn-lg" style="border-radius:12px;">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </a>
             </div>
-        </div>
-
-        <!-- Instructions Card -->
-        <div class="card mt-4">
-            <div class="card-header bg-light">
-                <h6 class="mb-0 fw-bold">
-                    <i class="fas fa-lightbulb text-warning me-2"></i>Upload Tips
-                </h6>
+        </form>
+        <div class="row sample-block mt-3">
+            <div class="col-md-6 mb-3">
+                <div class="required-label"><i class="fas fa-check-circle me-1"></i>Required Columns</div>
+                <ul class="mb-0 ps-3">
+                    <li><span class="text-success">product_id</span></li>
+                    <li><span class="text-success">product_name</span></li>
+                    <li><span class="text-success">current_stock</span></li>
+                    <li><span class="text-success">ideal_stock_level</span></li>
+                    <li><span class="text-success">expiry_date</span> <span class="text-muted">(optional for expiry alert)</span></li>
+                </ul>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6 class="fw-bold text-success">
-                            <i class="fas fa-check-circle me-2"></i>Best Practices
-                        </h6>
-                        <ul class="list-unstyled">
-                            <li class="mb-2"><i class="fas fa-arrow-right text-primary me-2"></i>Use UTF-8 encoding for special characters</li>
-                            <li class="mb-2"><i class="fas fa-arrow-right text-primary me-2"></i>Include column headers in the first row</li>
-                            <li class="mb-2"><i class="fas fa-arrow-right text-primary me-2"></i>Use numeric values for stock quantities</li>
-                            <li class="mb-2"><i class="fas fa-arrow-right text-primary me-2"></i>Keep file size under 16MB</li>
-                        </ul>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="fw-bold text-info">
-                            <i class="fas fa-info-circle me-2"></i>Supported Formats
-                        </h6>
-                        <ul class="list-unstyled">
-                            <li class="mb-2"><i class="fas fa-file-csv text-success me-2"></i>CSV files (.csv)</li>
-                            <li class="mb-2"><i class="fas fa-database text-primary me-2"></i>Comma-separated values</li>
-                            <li class="mb-2"><i class="fas fa-quote-right text-muted me-2"></i>Text fields in quotes (optional)</li>
-                            <li class="mb-2"><i class="fas fa-chart-line text-warning me-2"></i>Numeric data for analysis</li>
-                        </ul>
-                    </div>
+            <div class="col-md-6 mb-3">
+                <h6 class="mb-2"><i class="fas fa-table-list"></i> Sample Format</h6>
+                <div class="sample-code">
+product_id,product_name,current_stock,ideal_stock_level,expiry_date<br>
+P001,Apples,50,100,2025-08-21<br>
+P002,Bananas,200,120,2025-08-23
                 </div>
             </div>
         </div>
+        <div class="text-muted mt-3">Tip: Download a sample CSV from the dashboard if unsure.</div>
     </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-// File upload enhancement
-document.addEventListener('DOMContentLoaded', function() {
-    const fileInput = document.querySelector('input[type="file"]');
-    const uploadArea = document.querySelector('.upload-area');
-    
-    if (fileInput && uploadArea) {
-        // Drag and drop functionality
-        uploadArea.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            uploadArea.style.borderColor = '#2563eb';
-            uploadArea.style.backgroundColor = '#eff6ff';
-        });
-        
-        uploadArea.addEventListener('dragleave', function(e) {
-            e.preventDefault();
-            uploadArea.style.borderColor = '#e2e8f0';
-            uploadArea.style.backgroundColor = '#f8fafc';
-        });
-        
-        uploadArea.addEventListener('drop', function(e) {
-            e.preventDefault();
-            uploadArea.style.borderColor = '#e2e8f0';
-            uploadArea.style.backgroundColor = '#f8fafc';
-            
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                fileInput.files = files;
-                updateFileName(files[0].name);
-            }
-        });
-        
-        fileInput.addEventListener('change', function(e) {
-            if (e.target.files.length > 0) {
-                updateFileName(e.target.files.name);
-            }
-        });
-        
-        function updateFileName(name) {
-            const nameDisplay = document.createElement('p');
-            nameDisplay.className = 'text-success mt-2 fw-bold';
-            nameDisplay.innerHTML = `<i class="fas fa-check me-2"></i>Selected: ${name}`;
-            
-            const existing = uploadArea.querySelector('.text-success');
-            if (existing) {
-                existing.remove();
-            }
-            uploadArea.appendChild(nameDisplay);
-        }
-    }
-});
-</script>
-{% endblock %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

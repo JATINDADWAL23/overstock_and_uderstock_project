@@ -1,457 +1,437 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash, send_file
+import re
+from datetime import datetime, timedelta
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed, FileRequired
-from wtforms import StringField, IntegerField, TextAreaField, PasswordField
+from wtforms import StringField
 from wtforms.validators import DataRequired, Email
 import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import os, io, uuid, base64, time
+import os, io, base64, time, json
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from werkzeug.utils import secure_filename
 from threading import Thread
-from inventory_system import InventoryManagementSystem, EmailNotificationSystem
-from email_validator import validate_email, EmailNotValidError
+import json
+import os
 
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your-secret-key-change-this-in-production'
+app.config['SECRET_KEY'] = 'simple-secret-key-for-forms'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['TESTING'] = False
-app.config['MAIL_SUPPRESS_SEND'] = False
+app.config['RESULTS_FOLDER'] = 'static/results'
 
-
-# Create directories
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-os.makedirs('templates', exist_ok=True)
-os.makedirs('static/css', exist_ok=True)
-
-
-# Global variables
-analysis_results = {}
-
-
-email_config = {}
-
-
-# Helper functions for receiver email
-def set_receiver(address):
-    global email_config
-    email_config['recipient_emails'] = address
-    email_config['configured'] = True
-
-
-def get_receiver():
-    return email_config.get('recipient_emails', '')
-
+# Email config - replace with your email and app password
+SENDER_EMAIL = "jatindadwal56@gmail.com"
+SENDER_PASSWORD = "qekrgjxielyfyadc"
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
 
 # Forms
-class EmailConfigForm(FlaskForm):
-    smtp_server = StringField('SMTP Server', validators=[DataRequired()], default='smtp.gmail.com')
-    smtp_port = IntegerField('SMTP Port', validators=[DataRequired()], default=587)
-    sender_email = StringField('Sender Email', validators=[DataRequired(), Email()])
-    sender_password = PasswordField('Sender Password', validators=[DataRequired()])
-    recipient_emails = TextAreaField('Recipient Emails', validators=[DataRequired()])
-
-
 class FileUploadForm(FlaskForm):
     file = FileField('CSV File', validators=[FileRequired(), FileAllowed(['csv'])])
 
+class EmailForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired(), Email()])
 
-def create_simple_chart(data):
+def get_receiver_email():
     try:
-        plt.figure(figsize=(10, 6))
-        products = [x['product_name'][:15] for x in data]
-        current = [x['current_stock'] for x in data]
-        ideal = [x['ideal_stock_level'] for x in data]
-        
+        with open('receiver_email.txt') as f:
+            email = f.read().strip()
+            return email if email else None
+    except Exception:
+        return None
+
+def send_email_async(func, *args):
+    Thread(target=func, args=args).start()
+
+def send_inventory_alert(recommendations, receiver_email):
+    try:
+        critical = [r for r in recommendations if 'critical' in r['status']]
+        understock = [r for r in recommendations if r['status'] == 'understock']
+        overstock = [r for r in recommendations if r['status'] == 'overstock']
+
+        if not critical and not understock and not overstock:
+            print("No inventory alerts to send.")
+            return True
+
+        subject = "Inventory Alert - Critical Stock Levels"
+        html = f"""<h2>Inventory Alert</h2>
+        <p>Critical stock issues detected:</p>
+        <h3>Critical ({len(critical)})</h3><ul>"""
+        for item in critical:
+            html += f"<li><b>{item['product_name']}</b>: {item['action']}</li>"
+        html += "</ul>"
+
+        if understock:
+            html += f"<h3>Understock ({len(understock)})</h3><ul>"
+            for item in understock:
+                html += f"<li>{item['product_name']}: Current {item['current_stock']}, Ideal {item['ideal_stock_level']}</li>"
+            html += "</ul>"
+
+        if overstock:
+            html += f"<h3>Overstock ({len(overstock)})</h3><ul>"
+            for item in overstock:
+                html += f"<li>{item['product_name']}: Current {item['current_stock']}, Ideal {item['ideal_stock_level']}</li>"
+            html += "</ul>"
+
+        html += f"<p>Report generated on {time.strftime('%Y-%m-%d %H:%M:%S')}</p>"
+
+        msg = MIMEMultipart('alternative')
+        msg['From'] = SENDER_EMAIL
+        msg['To'] = receiver_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(html, 'html'))
+
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(SENDER_EMAIL, SENDER_PASSWORD)
+        server.sendmail(SENDER_EMAIL, receiver_email, msg.as_string())
+        server.quit()
+        print(f"Inventory alert email sent to {receiver_email}")
+        return True
+    except Exception as e:
+        print(f"Error sending inventory alert email: {e}")
+        return False
+
+def send_expiry_alert(expiry_items, receiver_email):
+    try:
+        if not expiry_items:
+            print("No expiry alerts to send.")
+            return True
+        subject = "Expiry Alert - Products Expiring Soon"
+        html = "<h2>Expiry Alert</h2><p>The following products expire within 7 days:</p><ul>"
+        for item in expiry_items:
+            html += f"<li><b>{item['product_name']}</b>: Expiry {item['expiry_date']} ({item['days_left']} days left), Stock: {item['current_stock']}</li>"
+        html += "</ul>"
+        html += f"<p>Report generated on {time.strftime('%Y-%m-%d %H:%M:%S')}</p>"
+
+        msg = MIMEMultipart('alternative')
+        msg['From'] = SENDER_EMAIL
+        msg['To'] = receiver_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(html, 'html'))
+
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(SENDER_EMAIL, SENDER_PASSWORD)
+        server.sendmail(SENDER_EMAIL, receiver_email, msg.as_string())
+        server.quit()
+        print(f"Expiry alert email sent to {receiver_email}")
+        return True
+    except Exception as e:
+        print(f"Error sending expiry alert email: {e}")
+        return False
+
+def create_chart(recommendations):
+    try:
+        plt.figure(figsize=(12, 6))
+        data = recommendations[:8]
+        products = [item['product_name'][:12] for item in data]
+        current = [item['current_stock'] for item in data]
+        ideal = [item['ideal_stock_level'] for item in data]
+
         x = range(len(products))
-        plt.bar([i-0.2 for i in x], current, 0.4, label='Current', color='#3b82f6', alpha=0.8)
-        plt.bar([i+0.2 for i in x], ideal, 0.4, label='Ideal', color='#10b981', alpha=0.8)
-        
-        plt.xlabel('Products')
-        plt.ylabel('Stock Quantity')
-        plt.title('Current vs Ideal Stock Levels')
+        width = 0.35
+        plt.bar([i - width/2 for i in x], current, width, label='Current Stock', color='#FF6B6B', alpha=0.8)
+        plt.bar([i + width/2 for i in x], ideal, width, label='Ideal Stock', color='#4ECDC4', alpha=0.8)
+        plt.xlabel('Products', fontweight='bold')
+        plt.ylabel('Stock Quantity', fontweight='bold')
+        plt.title('Current vs Ideal Stock Levels', fontsize=16, fontweight='bold')
         plt.xticks(x, products, rotation=45, ha='right')
         plt.legend()
+        plt.grid(axis='y', alpha=0.3)
         plt.tight_layout()
-        
-        img_buffer = io.BytesIO()
-        plt.savefig(img_buffer, format='png', dpi=100, bbox_inches='tight')
-        img_buffer.seek(0)
-        img_data = base64.b64encode(img_buffer.getvalue()).decode()
+        buffer = io.BytesIO()
+        plt.savefig(buffer, format='png', dpi=100, bbox_inches='tight')
+        buffer.seek(0)
+        image_data = base64.b64encode(buffer.getvalue()).decode()
         plt.close()
-        
-        return f"data:image/png;base64,{img_data}"
+        return f"data:image/png;base64,{image_data}"
     except Exception as e:
+        print(f"Chart error: {e}")
         plt.close()
         return None
 
+def analyze_data(df):
+    results = []
+    expiry_alerts = []
+    now = datetime.today().date()
 
-def process_analysis_async(data, session_id):
+    for idx, row in df.iterrows():
+        try:
+            current = float(row['current_stock'])
+            ideal = float(row['ideal_stock_level'])
+            ratio = current / ideal if ideal > 0 else 0
+
+            expiry_date_str = ""
+            expiry_date = None
+            days_left = None
+
+            for col in ['expiry_date', 'Expiry', 'expiry']:
+                if col in df.columns and pd.notnull(row[col]):
+                    expiry_date_str = str(row[col]).strip()
+                    break
+
+            if expiry_date_str:
+                try:
+                    expiry_date = datetime.strptime(expiry_date_str, '%d-%m-%Y').date()
+                except:
+                    try:
+                        expiry_date = datetime.strptime(expiry_date_str, '%Y-%m-%d').date()
+                    except:
+                        expiry_date = None
+
+            days_left_text = ''
+            if expiry_date:
+                delta = (expiry_date - now).days
+                if delta >= 0:
+                    days_left_text = str(delta)
+                    if delta <= 7:
+                        expiry_alerts.append({
+                            'product_id': row['product_id'],
+                            'product_name': row['product_name'],
+                            'current_stock': int(current),
+                            'expiry_date': expiry_date.strftime('%Y-%m-%d'),
+                            'days_left': days_left_text
+                        })
+                else:
+                    days_left_text = "Expired"
+
+            if ratio < 0.4:
+                status = "critical_understock"
+                priority = "CRITICAL"
+                action = f"URGENT: Order {int(ideal - current)} units now"
+            elif ratio < 0.7:
+                status = "understock"
+                priority = "HIGH"
+                action = f"Reorder {int(ideal - current)} units soon"
+            elif ratio > 2.0:
+                status = "critical_overstock"
+                priority = "CRITICAL"
+                action = f"Reduce {int(current - ideal)} units"
+            elif ratio > 1.3:
+                status = "overstock"
+                priority = "MEDIUM"
+                action = f"Consider reducing {int(current - ideal)} units"
+            else:
+                status = "optimal"
+                priority = "LOW"
+                action = "Stock level is good"
+
+            results.append({
+                'product_id': str(row['product_id']),
+                'product_name': str(row['product_name']),
+                'current_stock': int(current),
+                'ideal_stock_level': int(ideal),
+                'status': status,
+                'priority': priority,
+                'action': action,
+                'expiry_date': expiry_date.strftime('%Y-%m-%d') if expiry_date else '',
+                'days_left': days_left_text
+            })
+        except Exception as e:
+            print(f"Error processing row {idx}: {e}")
+    return results, expiry_alerts
+
+def save_results(results):
+    timestamp = str(int(time.time()))
+    filepath = os.path.join(app.config['RESULTS_FOLDER'], f'analysis_{timestamp}.json')
+    with open(filepath, 'w') as f:
+        json.dump(results, f)
+    with open('latest_results.txt', 'w') as f:
+        f.write(timestamp)
+    return timestamp
+
+def load_results():
     try:
-        print(f"🔄 Starting analysis for session {session_id}")
-        ims = InventoryManagementSystem()
-        
-        # Run analysis
-        forecasts, recommendations, alerts = ims.run_analysis(data)
-        
-        # Convert to list for templates
-        recs_list = [recommendations[k] for k in recommendations]
-        
-        # Create simple chart
-        chart = create_simple_chart(recs_list) if recs_list else None
-        
-        analysis_results[session_id] = {
-            'status': 'completed',
-            'recommendations_list': recs_list,
-            'alerts': alerts,
-            'charts': {'stock_comparison': chart} if chart else {}
-        }
-        
-        print(f"✅ Analysis completed for session {session_id}")
-        
-        # Send email alerts if configured
-        if email_config.get('configured', False) and recommendations:
-            try:
-                print("📧 Email is configured - attempting to send alerts...")
-                email_system = EmailNotificationSystem()
-                recipients = [x.strip() for x in email_config['recipient_emails'].split(',') if x.strip()]
-                
-                print(f"📧 Email config: {email_config['smtp_server']}:{email_config['smtp_port']}")
-                print(f"📧 From: {email_config['sender_email']}")
-                print(f"📧 To: {recipients}")
-                
-                email_system.configure_email(
-                    email_config['smtp_server'], 
-                    email_config['smtp_port'],
-                    email_config['sender_email'], 
-                    email_config['sender_password'], 
-                    recipients
-                )
-                
-                ims.alert_system.enable_email_notifications(email_system)
-                ims.alert_system.send_bulk_alerts(recommendations)
-                print("📧 Email alerts processing completed")
-                
-            except Exception as e:
-                print(f"❌ Email sending failed: {e}")
-        else:
-            print("⚠️ Email not configured - skipping email alerts")
-                
-    except Exception as e:
-        print(f"❌ Analysis failed: {e}")
-        analysis_results[session_id] = {
-            'status': 'error',
-            'error': str(e)
-        }
+        with open('latest_results.txt', 'r') as f:
+            timestamp = f.read().strip()
+        filepath = os.path.join(app.config['RESULTS_FOLDER'], f'analysis_{timestamp}.json')
+        with open(filepath, 'r') as f:
+            return json.load(f)
+    except:
+        return None
 
-
-# Routes
 @app.route('/')
 def index():
-    return render_template('index.html')
-
-
-@app.route("/set-email", methods=["GET", "POST"])
-def set_email():
-    if request.method == "POST":
-        raw = request.form.get("email", "").strip()
-        try:
-            address = validate_email(raw, check_deliverability=True).email
-        except EmailNotValidError as err:
-            flash(f"Invalid address – {err}", "danger")
-            # Render template directly so error shows immediately (not after redirect)
-            return render_template("set_email.html", receiver=raw)
-        set_receiver(address)
-        flash(f"Receiver e-mail “{address}” saved!", "success")
-        return redirect(url_for("index"))
-    return render_template("set_email.html", receiver=get_receiver())
-
-
+    email = get_receiver_email()
+    return render_template('index.html', receiver_email=email)
 
 @app.route('/upload', methods=['GET', 'POST'])
 def upload_file():
     form = FileUploadForm()
     if form.validate_on_submit():
         try:
-            filename = secure_filename(form.file.data.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], f"{int(time.time())}_{filename}")
-            form.file.data.save(filepath)
-            
-            data = pd.read_csv(filepath)
-            required_cols = ['product_id', 'product_name', 'current_stock', 'ideal_stock_level', 'status']
-            
-            for col in required_cols:
-                if col not in data.columns:
-                    flash(f'Missing required column: {col}', 'error')
-                    return render_template('upload.html', form=form)
-            
-            session['uploaded_file'] = filepath
-            session['data_preview'] = data.head().to_html(classes='table table-striped table-sm')
-            flash(f'Successfully loaded {len(data)} products!', 'success')
-            return redirect(url_for('analyze'))
-        except Exception as e:
-            flash(f'Error loading file: {str(e)}', 'error')
-    
-    return render_template('upload.html', form=form)
+            file = form.file.data
+            filename = secure_filename(file.filename)
+            timestamp = int(time.time())
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], f"{timestamp}_{filename}")
+            file.save(filepath)
 
+            df = pd.read_csv(filepath)
+            recommendations, expiry_alerts = analyze_data(df)
+            chart = create_chart(recommendations)
+            
+            # Add to upload history
+            add_upload_history(filename, len(recommendations), time.strftime('%Y-%m-%d %H:%M:%S'))
+            
+            summary = {
+                'total_products': len(recommendations),
+                'critical_count': len([r for r in recommendations if 'critical' in r['status']]),
+                'understock_count': len([r for r in recommendations if r['status'] == 'understock']),
+                'overstock_count': len([r for r in recommendations if r['status'] == 'overstock']),
+                'optimal_count': len([r for r in recommendations if r['status'] == 'optimal'])
+            }
+
+            results = {
+                'recommendations': recommendations,
+                'chart': chart,
+                'summary': summary,
+                'filename': filename,
+                'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
+            }
+
+            save_results(results)
+            receiver_email = get_receiver_email()
+            if receiver_email:
+                send_email_async(send_inventory_alert, recommendations, receiver_email)
+                if expiry_alerts:
+                    send_email_async(send_expiry_alert, expiry_alerts, receiver_email)
+                flash('Analysis complete! Email alert sent.', 'success')
+            else:
+                flash('Analysis complete! Configure email to receive alerts.', 'info')
+            os.remove(filepath)
+            return redirect(url_for('results'))
+        except Exception as e:
+            flash(f'Error: {str(e)}', 'error')
+            if 'filepath' in locals() and os.path.exists(filepath):
+                os.remove(filepath)
+    return render_template('upload.html', form=form)
+def add_upload_history(filename, product_count, upload_time):
+    entry = {
+        "filename": filename,
+        "products": product_count,
+        "uploaded_at": upload_time
+    }
+    try:
+        if os.path.exists('upload_history.json'):
+            with open('upload_history.json', 'r') as f:
+                history = json.load(f)
+        else:
+            history = []
+        history.insert(0, entry)  # newest on top
+        with open('upload_history.json', 'w') as f:
+            json.dump(history, f)
+    except Exception as e:
+        print("Upload history log error:", e)
+
+def load_history():
+    try:
+        with open('upload_history.json', 'r') as f:
+            return json.load(f)
+    except:
+        return []
+    return render_template('upload.html', form=form, history=load_history())
+
+@app.route('/results')
+def results():
+    result_data = load_results()
+    if not result_data:
+        flash("No results!", "danger")
+        return redirect(url_for('index'))
+    return render_template('results.html', result=result_data)
 
 @app.route('/sample-data')
 def use_sample_data():
     try:
-        ims = InventoryManagementSystem()
-        data = ims.create_sample_data()
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], f'sample_{int(time.time())}.csv')
-        data.to_csv(filepath, index=False)
-        session['uploaded_file'] = filepath
-        session['data_preview'] = data.to_html(classes='table table-striped table-sm')
-        flash('Sample data loaded successfully!', 'success')
-        return redirect(url_for('analyze'))
-    except Exception as e:
-        flash(f'Error loading sample data: {str(e)}', 'error')
-        return redirect(url_for('index'))
-
-
-@app.route('/analyze')
-def analyze():
-    if 'uploaded_file' not in session:
-        flash('Please upload data first', 'warning')
-        return redirect(url_for('upload_file'))
-    
-    try:
-        data = pd.read_csv(session['uploaded_file'])
-        session_id = str(uuid.uuid4())
-        session['analysis_id'] = session_id
-        
-        analysis_results[session_id] = {'status': 'processing'}
-        thread = Thread(target=process_analysis_async, args=(data, session_id))
-        thread.daemon = True
-        thread.start()
-        
-        return render_template('analysis.html', 
-                              data_preview=session.get('data_preview', ''),
-                              session_id=session_id)
-    except Exception as e:
-        flash(f'Analysis error: {str(e)}', 'error')
-        return redirect(url_for('upload_file'))
-
-
-@app.route('/analysis-status/<session_id>')
-def analysis_status(session_id):
-    result = analysis_results.get(session_id, {'status': 'not_found'})
-    return jsonify(result)
-
-
-@app.route('/results')
-def results():
-    session_id = session.get('analysis_id')
-    if not session_id or session_id not in analysis_results:
-        flash('No analysis results found', 'warning')
-        return redirect(url_for('index'))
-    
-    result = analysis_results[session_id]
-    if result['status'] != 'completed':
-        flash('Analysis not completed yet', 'info')
-        return redirect(url_for('analyze'))
-    
-    return render_template('results.html', result=result)
-
-
-@app.route('/email-config', methods=['GET', 'POST'])
-def email_config_page():
-    form = EmailConfigForm()
-    if form.validate_on_submit():
-        global email_config
-        email_config = {
-            'smtp_server': form.smtp_server.data,
-            'smtp_port': form.smtp_port.data,
-            'sender_email': form.sender_email.data,
-            'sender_password': form.sender_password.data,
-            'recipient_emails': form.recipient_emails.data,
-            'configured': True
+        sample_df = pd.DataFrame([
+            {'product_id': 'P001', 'product_name': 'Fresh Apples', 'current_stock': 45, 'ideal_stock_level': 100, 'expiry_date': '21-08-2025'},
+            {'product_id': 'P002', 'product_name': 'Bananas', 'current_stock': 180, 'ideal_stock_level': 120, 'expiry_date': '21-08-2025'}
+        ])
+        recommendations, expiry_alerts = analyze_data(sample_df)
+        chart = create_chart(recommendations)
+        summary = {
+            'total_products': len(recommendations),
+            'critical_count': len([r for r in recommendations if 'critical' in r['status']]),
+            'understock_count': len([r for r in recommendations if r['status'] == 'understock']),
+            'overstock_count': len([r for r in recommendations if r['status'] == 'overstock']),
+            'optimal_count': len([r for r in recommendations if r['status'] == 'optimal'])
         }
-        flash('Email configuration saved successfully!', 'success')
-        return redirect(url_for('email_config_page'))
-    
-    # Pre-populate form
-    if email_config.get('configured', False):
-        form.smtp_server.data = email_config['smtp_server']
-        form.smtp_port.data = email_config['smtp_port'] 
-        form.sender_email.data = email_config['sender_email']
-        form.recipient_emails.data = email_config['recipient_emails']
-    
-    return render_template('email_config.html', form=form, configured=email_config.get('configured', False))
+        results = {
+            'recommendations': recommendations,
+            'chart': chart,
+            'summary': summary,
+            'filename': 'sample_data.csv',
+            'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
+        }
+        save_results(results)
+        receiver_email = get_receiver_email()
+        if receiver_email:
+            send_email_async(send_inventory_alert, recommendations, receiver_email)
+            if expiry_alerts:
+                send_email_async(send_expiry_alert, expiry_alerts, receiver_email)
+            flash('Sample data analyzed! Email alert sent.', 'success')
+        else:
+            flash('Sample data analyzed! Configure email to receive alerts.', 'info')
+        return redirect(url_for('results'))
+    except Exception as e:
+        flash(f'Sample data error: {str(e)}', 'error')
+        return redirect(url_for('index'))
 
+@app.route('/set-email', methods=['GET', 'POST'])
+def set_email():
+    form = EmailForm()
+    if form.validate_on_submit():
+        with open('receiver_email.txt', 'w') as f:
+            f.write(form.email.data)
+        flash('Email saved!', 'success')
+        return redirect(url_for('index'))
+    current_email = get_receiver_email()
+    if current_email and not form.email.data:
+        form.email.data = current_email
+    return render_template('set_email.html', form=form)
 
 @app.route('/test-email')
 def test_email():
-    if not email_config.get('configured', False):
-        return jsonify({'success': False, 'message': 'Email not configured. Please configure email settings first.'})
-    
-    try:
-        print("🧪 Testing email configuration...")
-        email_system = EmailNotificationSystem()
-        recipients = [x.strip() for x in email_config['recipient_emails'].split(',') if x.strip()]
-        
-        print(f"📧 Test email config:")
-        print(f"   Server: {email_config['smtp_server']}:{email_config['smtp_port']}")
-        print(f"   From: {email_config['sender_email']}")
-        print(f"   To: {recipients}")
-        
-        email_system.configure_email(
-            email_config['smtp_server'], 
-            email_config['smtp_port'],
-            email_config['sender_email'], 
-            email_config['sender_password'], 
-            recipients
-        )
-        
-        test_data = [{
-            'product_id': 'TEST001',
-            'product_name': 'Test Product for Email Verification',
+    receiver_email = get_receiver_email()
+    if not receiver_email:
+        flash('Configure receiver email first!', 'warning')
+        return redirect(url_for('set_email'))
+    test_recommendations = [
+        {
+            'product_name': 'Test Product',
             'current_stock': 10,
-            'ideal_stock_level': 50,
-            'stock_ratio': 0.2,
-            'action': 'This is a test email from your Flask Inventory Management System',
-            'order_quantity': 40
-        }]
-        
-        success, message = email_system.send_stock_alert('critical', test_data)
-        
-        if success:
-            print("✅ Test email sent successfully!")
-        else:
-            print(f"❌ Test email failed: {message}")
-        
-        return jsonify({'success': success, 'message': message})
-        
-    except Exception as e:
-        error_msg = f"Test email failed: {str(e)}"
-        print(f"❌ {error_msg}")
-        return jsonify({'success': False, 'message': error_msg})
-
-
-@app.route('/export-results/<session_id>')
-def export_results(session_id):
-    if session_id not in analysis_results:
-        flash('No results to export', 'error')
-        return redirect(url_for('index'))
-    
-    result = analysis_results[session_id]
-    if result['status'] != 'completed':
-        flash('Analysis not completed', 'error') 
-        return redirect(url_for('index'))
-    
-    try:
-        df = pd.DataFrame(result['recommendations_list'])
-        filename = f'inventory_analysis_{int(time.time())}.csv'
-        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-        df.to_csv(filepath, index=False)
-        
-        return send_file(filepath, as_attachment=True, download_name=filename)
-    except Exception as e:
-        flash(f'Export error: {str(e)}', 'error')
-        return redirect(url_for('results'))
-
-
-# Debug route for email testing
-@app.route('/debug-email')
-def debug_email():
-    if not email_config.get('configured', False):
-        return """
-        <h2>❌ Email Not Configured</h2>
-        <p>Please configure your email settings first:</p>
-        <a href="/email-config">Configure Email Settings</a>
-        """
-    
-    try:
-        print("🔧 EMAIL DEBUG MODE")
-        print("=" * 50)
-        
-        email_system = EmailNotificationSystem()
-        recipients = [x.strip() for x in email_config['recipient_emails'].split(',') if x.strip()]
-        
-        print(f"📧 SMTP Server: {email_config['smtp_server']}")
-        print(f"📧 SMTP Port: {email_config['smtp_port']}")
-        print(f"📧 Sender Email: {email_config['sender_email']}")
-        print(f"📧 Recipients: {recipients}")
-        print(f"📧 Password Length: {len(email_config['sender_password'])} characters")
-        
-        email_system.configure_email(
-            email_config['smtp_server'], 
-            email_config['smtp_port'],
-            email_config['sender_email'], 
-            email_config['sender_password'], 
-            recipients
-        )
-        
-        test_data = [{
-            'product_id': 'DEBUG001',
-            'product_name': 'Debug Test Product',
-            'current_stock': 5,
             'ideal_stock_level': 100,
-            'stock_ratio': 0.05,
-            'action': 'DEBUG: This is a test email with detailed logging',
-            'order_quantity': 95
-        }]
-        
-        print("\n🚀 Attempting to send test email...")
-        success, message = email_system.send_stock_alert('critical', test_data)
-        
-        result_html = f"""
-        <html>
-        <head><title>Email Debug Results</title></head>
-        <body style="font-family: Arial; padding: 20px;">
-            <h2>📧 Email Debug Results</h2>
-            <div style="background: {'#d4edda' if success else '#f8d7da'}; padding: 15px; border-radius: 5px; margin: 10px 0;">
-                <h3>{'✅ SUCCESS' if success else '❌ FAILED'}</h3>
-                <p><strong>Message:</strong> {message}</p>
-            </div>
-            
-            <h3>Configuration Details:</h3>
-            <ul>
-                <li><strong>SMTP Server:</strong> {email_config['smtp_server']}</li>
-                <li><strong>SMTP Port:</strong> {email_config['smtp_port']}</li>
-                <li><strong>Sender Email:</strong> {email_config['sender_email']}</li>
-                <li><strong>Recipients:</strong> {', '.join(recipients)}</li>
-                <li><strong>Password Length:</strong> {len(email_config['sender_password'])} characters</li>
-            </ul>
-            
-            <h3>Troubleshooting Tips:</h3>
-            <ul>
-                <li>For Gmail: Use App Password (not regular password)</li>
-                <li>Enable 2-Factor Authentication on Gmail</li>
-                <li>Check that recipient emails are valid</li>
-                <li>Verify network/firewall settings</li>
-            </ul>
-            
-            <p><a href="/email-config">← Back to Email Configuration</a></p>
-        </body>
-        </html>
-        """
-        
-        return result_html
-        
-    except Exception as e:
-        error_html = f"""
-        <html>
-        <body style="font-family: Arial; padding: 20px;">
-            <h2>❌ Email Debug Error</h2>
-            <div style="background: #f8d7da; padding: 15px; border-radius: 5px;">
-                <p><strong>Error:</strong> {str(e)}</p>
-            </div>
-            <p><a href="/email-config">← Back to Email Configuration</a></p>
-        </body>
-        </html>
-        """
-        return error_html
+            'status': 'critical_understock',
+            'action': 'URGENT: Order 90 units now'
+        }
+    ]
+    success = send_inventory_alert(test_recommendations, receiver_email)
+    if success:
+        flash(f'Test email sent successfully to {receiver_email}!', 'success')
+    else:
+        flash('Failed to send test email. Check email configuration.', 'error')
+    return redirect(url_for('index'))
 
+@app.route('/clear-session')
+def clear_session():
+    session.clear()
+    flash('Session cleared!', 'info')
+    return redirect(url_for('index'))
+
+@app.route('/clear-results')
+def clear_results():
+    try:
+        if os.path.exists('latest_results.txt'):
+            os.remove('latest_results.txt')
+        flash('Results cleared!', 'info')
+    except Exception:
+        pass
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    print("🚀 Starting Inventory Management System...")
-    print("📍 Main Dashboard: http://127.0.0.1:5000")
-    print("📍 Email Debug: http://127.0.0.1:5000/debug-email")
-    print("=" * 50)
-    
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True)

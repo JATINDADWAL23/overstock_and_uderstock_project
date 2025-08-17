@@ -1,213 +1,923 @@
-{% extends "base.html" %}
-
-{% block title %}Dashboard - Professional Inventory Management{% endblock %}
-
-{% block content %}
-<!-- Hero Section -->
-<div class="row mb-5">
-    <div class="col-12">
-        <div class="card hero-gradient text-white">
-            <div class="card-body py-5">
-                <div class="row align-items-center">
-                    <div class="col-lg-8">
-                        <div class="d-flex align-items-center mb-3">
-                            <i class="fas fa-chart-line fa-3x me-4"></i>
-                            <div>
-                                <h1 class="display-5 fw-bold mb-2">Inventory Management Pro</h1>
-                                <p class="lead mb-0">Advanced analytics, predictive insights, and automated alerts for professional inventory optimization</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-4 text-lg-end">
-                        <i class="fas fa-boxes fa-4x opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Quick Actions -->
-<div class="row mb-5">
-    <div class="col-md-4 mb-4">
-        <div class="card h-100 text-center">
-            <div class="card-body py-5">
-                <div class="mb-4">
-                    <i class="fas fa-file-upload fa-3x text-primary mb-3"></i>
-                </div>
-                <h5 class="card-title fw-bold">Upload Inventory Data</h5>
-                <p class="card-text">Upload your CSV file containing product inventory data for comprehensive analysis and optimization recommendations.</p>
-                <a href="{{ url_for('upload_file') }}" class="btn btn-primary btn-lg">
-                    <i class="fas fa-upload me-2"></i>Upload CSV File
-                </a>
-            </div>
-        </div>
-    </div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InventoryPro - Smart Inventory Management System</title>
     
-    <div class="col-md-4 mb-4">
-        <div class="card h-100 text-center">
-            <div class="card-body py-5">
-                <div class="mb-4">
-                    <i class="fas fa-database fa-3x text-success mb-3"></i>
-                </div>
-                <h5 class="card-title fw-bold">Try Sample Data</h5>
-                <p class="card-text">Explore the system capabilities with our pre-loaded sample inventory data to see how the analytics work.</p>
-                <a href="{{ url_for('use_sample_data') }}" class="btn btn-success btn-lg">
-                    <i class="fas fa-play me-2"></i>Load Sample Data
-                </a>
-            </div>
-        </div>
-    </div>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
-    <div class="col-md-4 mb-4">
-        <div class="card h-100 text-center">
-            <div class="card-body py-5">
-                <div class="mb-4">
-                    <i class="fas fa-envelope fa-3x text-warning mb-3"></i>
-                </div>
-                <h5 class="card-title fw-bold">Email Notifications</h5>
-                <p class="card-text">Configure automated email alerts for critical stock levels, overstocking, and inventory recommendations.</p>
-                <a href="{{ url_for('email_config_page') }}" class="btn btn-warning btn-lg text-white">
-                    <i class="fas fa-cog me-2"></i>Setup Alerts
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Features Overview -->
-<div class="row mb-5">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0 fw-bold">
-                    <i class="fas fa-star text-warning me-2"></i>Key Features
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-lg-6">
-                        <div class="d-flex mb-3">
-                            <div class="me-3">
-                                <i class="fas fa-chart-bar text-primary fa-lg"></i>
-                            </div>
-                            <div>
-                                <h6 class="fw-bold mb-1">Real-time Analytics</h6>
-                                <p class="mb-0">Advanced stock level analysis with visual charts and trend identification</p>
-                            </div>
-                        </div>
-                        <div class="d-flex mb-3">
-                            <div class="me-3">
-                                <i class="fas fa-brain text-info fa-lg"></i>
-                            </div>
-                            <div>
-                                <h6 class="fw-bold mb-1">Predictive Intelligence</h6>
-                                <p class="mb-0">AI-powered demand forecasting and automated reorder recommendations</p>
-                            </div>
-                        </div>
-                        <div class="d-flex mb-3">
-                            <div class="me-3">
-                                <i class="fas fa-bell text-warning fa-lg"></i>
-                            </div>
-                            <div>
-                                <h6 class="fw-bold mb-1">Smart Alerts</h6>
-                                <p class="mb-0">Automated email notifications for critical stock situations and opportunities</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-6">
-                        <div class="d-flex mb-3">
-                            <div class="me-3">
-                                <i class="fas fa-file-export text-success fa-lg"></i>
-                            </div>
-                            <div>
-                                <h6 class="fw-bold mb-1">Export & Reporting</h6>
-                                <p class="mb-0">Professional reports with actionable insights and export capabilities</p>
-                            </div>
-                        </div>
-                        <div class="d-flex mb-3">
-                            <div class="me-3">
-                                <i class="fas fa-mobile-alt text-primary fa-lg"></i>
-                            </div>
-                            <div>
-                                <h6 class="fw-bold mb-1">Responsive Design</h6>
-                                <p class="mb-0">Access your inventory insights on any device, anywhere</p>
-                            </div>
-                        </div>
-                        <div class="d-flex mb-3">
-                            <div class="me-3">
-                                <i class="fas fa-shield-alt text-danger fa-lg"></i>
-                            </div>
-                            <div>
-                                <h6 class="fw-bold mb-1">Secure & Reliable</h6>
-                                <p class="mb-0">Enterprise-grade security with reliable data processing</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Data Requirements -->
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0 fw-bold">
-                    <i class="fas fa-table text-info me-2"></i>CSV Data Format Requirements
-                </h5>
-            </div>
-            <div class="card-body">
-                <p class="mb-4">Ensure your CSV file contains the following columns for optimal analysis:</p>
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            --warning-gradient: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+            --navbar-height: 80px;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            overflow-x: hidden;
+            padding-top: var(--navbar-height);
+        }
+        
+        /* Navigation Bar */
+        .main-navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            z-index: 1030;
+            height: var(--navbar-height);
+            transition: all 0.3s ease;
+        }
+        
+        .main-navbar.scrolled {
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 2px 30px rgba(0,0,0,0.15);
+        }
+        
+        .navbar-brand {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .navbar-nav .nav-link {
+            font-weight: 500;
+            color: #333;
+            margin: 0 0.5rem;
+            padding: 0.7rem 1rem !important;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .navbar-nav .nav-link:hover {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            transform: translateY(-1px);
+        }
+        
+        .navbar-nav .nav-link.active {
+            background: var(--primary-gradient);
+            color: white !important;
+        }
+        
+        .search-container {
+            position: relative;
+        }
+        
+        .search-input {
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            padding: 0.6rem 1rem 0.6rem 2.5rem;
+            width: 250px;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+        
+        .search-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            background: white;
+            width: 300px;
+        }
+        
+        .search-icon {
+            position: absolute;
+            left: 0.8rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+        
+        .help-btn, .notification-btn {
+            background: transparent;
+            border: 2px solid #667eea;
+            color: #667eea;
+            border-radius: 50%;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            margin-left: 0.5rem;
+        }
+        
+        .help-btn:hover, .notification-btn:hover {
+            background: var(--primary-gradient);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        /* Hero Section */
+        .hero-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 60vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            padding: 4rem 0;
+        }
+        
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="75" cy="75" r="1" fill="rgba(255,255,255,0.1)"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.1;
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+        
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .hero-subtitle {
+            font-size: 1.3rem;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 1.5rem;
+            font-weight: 300;
+        }
+        
+        .hero-stats {
+            display: flex;
+            gap: 2rem;
+            margin-top: 2rem;
+            justify-content: center;
+        }
+        
+        .stat-item {
+            text-align: center;
+            color: white;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+        
+        /* Action Cards Section */
+        .action-section {
+            padding: 4rem 0;
+            background: #f8f9fa;
+        }
+        
+        .action-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            transition: all 0.4s ease;
+            border: none;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .action-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: var(--primary-gradient);
+        }
+        
+        .action-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+        }
+        
+        .action-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            font-size: 1.8rem;
+            color: white;
+        }
+        
+        .action-card:nth-child(1) .action-icon { background: var(--primary-gradient); }
+        .action-card:nth-child(2) .action-icon { background: var(--success-gradient); }
+        .action-card:nth-child(3) .action-icon { background: var(--warning-gradient); }
+        
+        .action-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+        }
+        
+        .action-description {
+            color: #6c757d;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+        }
+        
+        .action-btn {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+        
+        /* Email Status Section */
+        .email-status {
+            background: white;
+            padding: 3rem 0;
+        }
+        
+        .status-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 20px;
+            padding: 2.5rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .status-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+        
+        .email-badge {
+            display: inline-block;
+            padding: 0.8rem 2rem;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50px;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+        
+        /* Features Section */
+        .features-section {
+            padding: 4rem 0;
+            background: #f8f9fa;
+        }
+        
+        .feature-item {
+            text-align: center;
+            padding: 1.5rem;
+        }
+        
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            background: var(--primary-gradient);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            font-size: 2rem;
+            color: white;
+        }
+        
+        .feature-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+        }
+        
+        .feature-description {
+            color: #6c757d;
+            font-size: 0.95rem;
+        }
+        
+        /* CTA Section */
+        .cta-section {
+            background: var(--primary-gradient);
+            color: white;
+            padding: 4rem 0;
+            text-align: center;
+        }
+        
+        .cta-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        
+        .cta-subtitle {
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+        
+        .cta-btn {
+            background: white;
+            color: #667eea;
+            padding: 1.2rem 3rem;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            border: none;
+            transition: all 0.3s ease;
+        }
+        
+        .cta-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+        }
+        
+        /* Search Results Dropdown */
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .search-result-item {
+            padding: 1rem;
+            border-bottom: 1px solid #f1f1f1;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+        
+        .search-result-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+        
+        /* Help Modal Styles */
+        .modal-content {
+            border-radius: 20px;
+            border: none;
+        }
+        
+        .modal-header {
+            background: var(--primary-gradient);
+            color: white;
+            border-radius: 20px 20px 0 0;
+        }
+        
+        /* Animations */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeInUp 0.8s ease forwards;
+        }
+        
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero-section {
+                min-height: 50vh;
+                padding: 2rem 0;
+            }
+            
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .hero-subtitle {
+                font-size: 1.1rem;
+            }
+            
+            .hero-stats {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .search-input {
+                width: 200px;
+            }
+            
+            .search-input:focus {
+                width: 250px;
+            }
+            
+            .navbar-nav {
+                background: rgba(255,255,255,0.98);
+                backdrop-filter: blur(10px);
+                border-radius: 15px;
+                margin-top: 1rem;
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg main-navbar">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-boxes me-2"></i>InventoryPro
+            </a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('index') }}">
+                            <i class="fas fa-home me-1"></i>Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('upload_file') }}">
+                            <i class="fas fa-upload me-1"></i>Upload Data
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('use_sample_data') }}">
+                            <i class="fas fa-database me-1"></i>Sample Data
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('results') }}">
+                            <i class="fas fa-chart-bar me-1"></i>Analytics
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('set_email') }}">
+                            <i class="fas fa-envelope me-1"></i>Email Settings
+                        </a>
+                    </li>
+                </ul>
                 
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th><i class="fas fa-tag me-2"></i>Column Name</th>
-                                <th><i class="fas fa-info-circle me-2"></i>Description</th>
-                                <th><i class="fas fa-code me-2"></i>Data Type</th>
-                                <th><i class="fas fa-eye me-2"></i>Example</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><code>product_id</code></td>
-                                <td>Unique product identifier</td>
-                                <td><span class="badge bg-info">String</span></td>
-                                <td>P001, SKU123, etc.</td>
-                            </tr>
-                            <tr>
-                                <td><code>product_name</code></td>
-                                <td>Product display name</td>
-                                <td><span class="badge bg-info">String</span></td>
-                                <td>Wireless Mouse, Laptop, etc.</td>
-                            </tr>
-                            <tr>
-                                <td><code>current_stock</code></td>
-                                <td>Current inventory quantity</td>
-                                <td><span class="badge bg-success">Number</span></td>
-                                <td>25, 150, 0, etc.</td>
-                            </tr>
-                            <tr>
-                                <td><code>ideal_stock_level</code></td>
-                                <td>Target inventory quantity</td>
-                                <td><span class="badge bg-success">Number</span></td>
-                                <td>50, 200, 75, etc.</td>
-                            </tr>
-                            <tr>
-                                <td><code>status</code></td>
-                                <td>Current inventory status</td>
-                                <td><span class="badge bg-warning">String</span></td>
-                                <td>Good, Low, Critical, Overstock</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <!-- Search Bar -->
+                <div class="search-container me-3">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" class="form-control search-input" placeholder="Search features..." id="searchInput">
+                    <div class="search-results" id="searchResults"></div>
+                </div>
+                
+                <!-- Help & Support Buttons -->
+                <div class="d-flex align-items-center">
+                    <button class="btn notification-btn" data-bs-toggle="modal" data-bs-target="#notificationModal" title="Notifications">
+                        <i class="fas fa-bell"></i>
+                    </button>
+                    <button class="btn help-btn" data-bs-toggle="modal" data-bs-target="#helpModal" title="Help & Support">
+                        <i class="fas fa-question"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-8 mx-auto text-center">
+                    <div class="hero-content fade-in">
+                        <h1 class="hero-title">InventoryPro</h1>
+                        <p class="hero-subtitle">Smart Inventory Management with AI-Powered Analytics</p>
+                        <p class="lead text-white-50 mb-4">
+                            Prevent stockouts, reduce overstock, and optimize your inventory with intelligent forecasting.
+                        </p>
+                        
+                        <div class="hero-stats">
+                            <div class="stat-item">
+                                <span class="stat-number">99.9%</span>
+                                <span class="stat-label">Accuracy</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">50%</span>
+                                <span class="stat-label">Cost Reduction</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">24/7</span>
+                                <span class="stat-label">Monitoring</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Email Status Section -->
+    <section class="email-status">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="status-card">
+                        <i class="fas fa-envelope fa-3x mb-3"></i>
+                        <h3>Email Notification Status</h3>
+                        <p class="mb-3">Stay informed about critical inventory changes with real-time alerts</p>
+                        
+                        {% if receiver %}
+                        <div class="email-badge bg-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Configured: {{ receiver }}
+                        </div>
+                        <p class="mt-3 mb-0">
+                            <a href="{{ url_for('set_email') }}" class="btn btn-outline-light">
+                                <i class="fas fa-edit me-2"></i>Change Email
+                            </a>
+                        </p>
+                        {% else %}
+                        <div class="email-badge bg-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Not Configured
+                        </div>
+                        <p class="mt-3 mb-0">
+                            <a href="{{ url_for('set_email') }}" class="btn btn-light btn-lg">
+                                <i class="fas fa-cog me-2"></i>Setup Email Notifications
+                            </a>
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Action Cards Section -->
+    <section class="action-section">
+        <div class="container">
+            <div class="row text-center mb-5">
+                <div class="col-12">
+                    <h2 class="display-5 font-weight-bold mb-3">Get Started in 3 Simple Steps</h2>
+                    <p class="lead text-muted">Choose how you want to analyze your inventory</p>
+                </div>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6">
+                    <div class="action-card text-center fade-in">
+                        <div class="action-icon">
+                            <i class="fas fa-upload"></i>
+                        </div>
+                        <h3 class="action-title">Upload Your Data</h3>
+                        <p class="action-description">
+                            Upload your inventory CSV file with product information for comprehensive analysis.
+                        </p>
+                        <a href="{{ url_for('upload_file') }}" class="action-btn">
+                            <i class="fas fa-cloud-upload-alt me-2"></i>Upload CSV File
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 col-md-6">
+                    <div class="action-card text-center fade-in">
+                        <div class="action-icon">
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <h3 class="action-title">Try Sample Data</h3>
+                        <p class="action-description">
+                            Explore the system with our pre-loaded sample inventory data to see analysis in action.
+                        </p>
+                        <a href="{{ url_for('use_sample_data') }}" class="action-btn">
+                            <i class="fas fa-play-circle me-2"></i>Load Sample Data
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 col-md-6">
+                    <div class="action-card text-center fade-in">
+                        <div class="action-icon">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <h3 class="action-title">View Analytics</h3>
+                        <p class="action-description">
+                            Access detailed analytics and actionable insights from your inventory data.
+                        </p>
+                        <a href="{{ url_for('results') }}" class="action-btn">
+                            <i class="fas fa-analytics me-2"></i>View Reports
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section">
+        <div class="container">
+            <div class="row text-center mb-4">
+                <div class="col-12">
+                    <h2 class="display-5 font-weight-bold mb-3">Powerful Features</h2>
+                    <p class="lead text-muted">Everything you need for smart inventory management</p>
+                </div>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-lg-3 col-md-6">
+                    <div class="feature-item fade-in">
+                        <div class="feature-icon">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <h4 class="feature-title">AI-Powered Analysis</h4>
+                        <p class="feature-description">Advanced algorithms analyze patterns and predict inventory needs</p>
+                    </div>
+                </div>
+                
+                <div class="col-lg-3 col-md-6">
+                    <div class="feature-item fade-in">
+                        <div class="feature-icon">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <h4 class="feature-title">Real-time Alerts</h4>
+                        <p class="feature-description">Instant notifications for critical stock levels</p>
+                    </div>
+                </div>
+                
+                <div class="col-lg-3 col-md-6">
+                    <div class="feature-item fade-in">
+                        <div class="feature-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h4 class="feature-title">Visual Analytics</h4>
+                        <p class="feature-description">Beautiful charts to visualize inventory trends</p>
+                    </div>
+                </div>
+                
+                <div class="col-lg-3 col-md-6">
+                    <div class="feature-item fade-in">
+                        <div class="feature-icon">
+                            <i class="fas fa-download"></i>
+                        </div>
+                        <h4 class="feature-title">Export Reports</h4>
+                        <p class="feature-description">Download detailed analysis reports</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <h2 class="cta-title">Ready to Optimize Your Inventory?</h2>
+                    <p class="cta-subtitle">Start analyzing your inventory data today</p>
+                    <a href="{{ url_for('upload_file') }}" class="cta-btn">
+                        <i class="fas fa-rocket me-2"></i>Get Started Now
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Help & Support Modal -->
+    <div class="modal fade" id="helpModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-life-ring me-2"></i>Help & Support Center</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="help-item p-3 border rounded">
+                                <h6><i class="fas fa-book me-2 text-primary"></i>Getting Started Guide</h6>
+                                <p class="small text-muted mb-2">Learn how to upload data and run your first analysis</p>
+                                <a href="#" class="btn btn-sm btn-outline-primary">Read Guide</a>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="help-item p-3 border rounded">
+                                <h6><i class="fas fa-video me-2 text-success"></i>Video Tutorials</h6>
+                                <p class="small text-muted mb-2">Watch step-by-step video tutorials</p>
+                                <a href="#" class="btn btn-sm btn-outline-success">Watch Videos</a>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="help-item p-3 border rounded">
+                                <h6><i class="fas fa-question-circle me-2 text-warning"></i>FAQ</h6>
+                                <p class="small text-muted mb-2">Find answers to commonly asked questions</p>
+                                <a href="#" class="btn btn-sm btn-outline-warning">View FAQ</a>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="help-item p-3 border rounded">
+                                <h6><i class="fas fa-envelope me-2 text-info"></i>Contact Support</h6>
+                                <p class="small text-muted mb-2">Get help from our support team</p>
+                                <a href="mailto:support@inventoryPro.com" class="btn btn-sm btn-outline-info">Email Us</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <h6>Quick Tips:</h6>
+                    <ul class="list-unstyled small">
+                        <li class="mb-2"><i class="fas fa-lightbulb text-warning me-2"></i>Use the search bar to quickly find features</li>
+                        <li class="mb-2"><i class="fas fa-lightbulb text-warning me-2"></i>Set up email notifications for automatic alerts</li>
+                        <li class="mb-2"><i class="fas fa-lightbulb text-warning me-2"></i>Export your analysis results for further processing</li>
+                        <li class="mb-2"><i class="fas fa-lightbulb text-warning me-2"></i>Use sample data to explore system capabilities</li>
+                    </ul>
                 </div>
             </div>
         </div>
     </div>
-</div>
-{% endblock %}
+
+    <!-- Notifications Modal -->
+    <div class="modal fade" id="notificationModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-bell me-2"></i>Notifications</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center py-4">
+                        <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No new notifications</p>
+                        <small class="text-muted">You'll receive notifications here when there are inventory alerts or system updates.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="position-fixed top-0 end-0 p-3" style="z-index: 1050; margin-top: 100px;">
+          {% for category, message in messages %}
+            <div class="toast show" role="alert">
+              <div class="toast-header">
+                <i class="fas fa-{{ 'check-circle text-success' if category == 'success' else 'exclamation-triangle text-warning' }} me-2"></i>
+                <strong class="me-auto">Notification</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+              </div>
+              <div class="toast-body">{{ message }}</div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Search functionality
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+        
+        const searchData = [
+            { title: 'Upload Data', description: 'Upload your inventory CSV file', url: '{{ url_for("upload_file") }}', icon: 'fas fa-upload' },
+            { title: 'Sample Data', description: 'Try the system with sample data', url: '{{ url_for("use_sample_data") }}', icon: 'fas fa-database' },
+            { title: 'Analytics', description: 'View analysis results and reports', url: '{{ url_for("results") }}', icon: 'fas fa-chart-bar' },
+            { title: 'Email Settings', description: 'Configure email notifications', url: '{{ url_for("set_email") }}', icon: 'fas fa-envelope' },
+            { title: 'Dashboard', description: 'Return to main dashboard', url: '{{ url_for("index") }}', icon: 'fas fa-home' }
+        ];
+        
+        searchInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            
+            if (query.length === 0) {
+                searchResults.style.display = 'none';
+                return;
+            }
+            
+            const filtered = searchData.filter(item => 
+                item.title.toLowerCase().includes(query) || 
+                item.description.toLowerCase().includes(query)
+            );
+            
+            if (filtered.length > 0) {
+                searchResults.innerHTML = filtered.map(item => `
+                    <div class="search-result-item" onclick="window.location.href='${item.url}'">
+                        <i class="${item.icon} me-2 text-primary"></i>
+                        <strong>${item.title}</strong>
+                        <br><small class="text-muted">${item.description}</small>
+                    </div>
+                `).join('');
+                searchResults.style.display = 'block';
+            } else {
+                searchResults.innerHTML = '<div class="search-result-item text-center text-muted">No results found</div>';
+                searchResults.style.display = 'block';
+            }
+        });
+        
+        // Close search results when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.search-container')) {
+                searchResults.style.display = 'none';
+            }
+        });
+        
+        // Navbar scroll effect
+        window.addEventListener('scroll', function() {
+            const navbar = document.querySelector('.main-navbar');
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+        
+        // Add fade-in animation on scroll
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    entry.target.style.animationDelay = '0.2s';
+                    entry.target.classList.add('fade-in');
+                }
+            });
+        });
+
+        document.querySelectorAll('.fade-in').forEach((el) => {
+            observer.observe(el);
+        });
+
+        // Auto-hide toasts
+        setTimeout(() => {
+            const toasts = document.querySelectorAll('.toast');
+            toasts.forEach(toast => toast.classList.remove('show'));
+        }, 5000);
+        
+        // Active nav link highlighting
+        const currentLocation = location.pathname;
+        const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
+        navLinks.forEach(link => {
+            if (link.getAttribute('href') === currentLocation) {
+                navLinks.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+            }
+        });
+    </script>
+</body>
+</html>

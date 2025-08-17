@@ -1,0 +1,9 @@
+product_id,product_name,current_stock,ideal_stock_level,status
+P001,Apples,50,100,understock
+P002,Bananas,200,120,overstock
+P003,Oranges,80,90,ok
+P004,Milk,30,150,understock
+P005,Bread,180,100,overstock
+P006,Eggs,75,80,ok
+P007,Cheese,25,60,understock
+P008,Yogurt,120,70,overstock

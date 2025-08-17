@@ -1,0 +1,13 @@
+product_id,product_name,current_stock,ideal_stock_level,stock_ratio,status,action,priority,difference
+P001,Organic Rice 5kg,120,100,1.2,optimal,Stock level is optimal,NONE,20
+P002,Olive Oil 1L,30,80,0.38,understock,URGENT: Order 50 units immediately,HIGH,-50
+P003,Whole Wheat Bread,60,60,1.0,optimal,Stock level is optimal,NONE,0
+P004,Chedder Cheese 200g,15,50,0.3,understock,URGENT: Order 35 units immediately,HIGH,-35
+P005,Green Tea Bags  100pk,200,150,1.33,high,Monitor for potential overstock,LOW,50
+P006,Tomato Ketchup 500ml,75,75,1.0,optimal,Stock level is optimal,NONE,0
+P007,Almond Milk 1L,25,60,0.42,understock,URGENT: Order 35 units immediately,HIGH,-35
+P008,Frozen French Fries 1kg,180,120,1.5,high,Monitor for potential overstock,LOW,60
+P009,Fresh Apples 1kg,50,50,1.0,optimal,Stock level is optimal,NONE,0
+P010,Packaged Noodles 300g,90,60,1.5,high,Monitor for potential overstock,LOW,30
+P011,Chocolate Chip Cookies,40,70,0.57,low,Reorder 30 units soon,MEDIUM,-30
+P012,Bottled Water 1L,300,250,1.2,optimal,Stock level is optimal,NONE,50

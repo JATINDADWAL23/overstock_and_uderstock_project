@@ -1,0 +1,13 @@
+product_id,product_name,current_stock,ideal_stock_level,status
+P001,Organic Rice 5kg,120,100,Overstock
+P002,Olive Oil 1L,30,80,Understock
+P003,Whole Wheat Bread,60,60,In Stock
+P004,Chedder Cheese 200g,15,50,Understock
+P005,Green Tea Bags  100pk,200,150,Overstock
+P006,Tomato Ketchup 500ml,75,75,In Stock
+P007,Almond Milk 1L,25,60,Understock
+P008,Frozen French Fries 1kg,180,120,Overstock
+P009,Fresh Apples 1kg,50,50,In Stock
+P010,Packaged Noodles 300g,90,60,Overstock
+P011,Chocolate Chip Cookies,40,70,Understock
+P012,Bottled Water 1L,300,250,Overstock

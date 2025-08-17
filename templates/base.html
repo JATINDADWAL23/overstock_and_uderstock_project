@@ -1,823 +1,313 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Professional Inventory Management System{% endblock %}</title>
+    <title>{% block title %}InventoryPro - Smart Inventory Management{% endblock %}</title>
     
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome Icons -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
     <style>
-        /* LIGHT THEME - Clean & Professional */
-        :root[data-theme="light"] {
+        :root {
             --primary-color: #2563eb;
-            --primary-dark: #1d4ed8;
-            --primary-light: #3b82f6;
-            --secondary-color: #64748b;
+            --secondary-color: #1e40af;
             --success-color: #059669;
             --warning-color: #d97706;
             --danger-color: #dc2626;
             --info-color: #0891b2;
-            
-            /* Backgrounds */
-            --bg-primary: #ffffff;
-            --bg-secondary: #f8fafc;
-            --bg-tertiary: #f1f5f9;
-            --bg-accent: #e2e8f0;
-            
-            /* Text Colors */
-            --text-primary: #1e293b;
-            --text-secondary: #475569;
-            --text-muted: #64748b;
-            --text-light: #94a3b8;
-            
-            /* Interactive Elements */
-            --border-color: #e2e8f0;
-            --border-light: #f1f5f9;
-            --shadow-color: rgba(0,0,0,0.08);
-            --shadow-hover: rgba(0,0,0,0.12);
-            
-            /* Component Specific */
-            --navbar-bg: #ffffff;
-            --card-bg: #ffffff;
-            --input-bg: #ffffff;
-            --dropdown-bg: #ffffff;
+            --light-color: #f8fafc;
+            --dark-color: #1e293b;
+            --sidebar-width: 280px;
         }
-
-        /* DARK THEME - High Contrast & Eye-friendly */
-        :root[data-theme="dark"] {
-            --primary-color: #60a5fa;
-            --primary-dark: #3b82f6;
-            --primary-light: #93c5fd;
-            --secondary-color: #94a3b8;
-            --success-color: #34d399;
-            --warning-color: #fbbf24;
-            --danger-color: #f87171;
-            --info-color: #38bdf8;
-            
-            /* Backgrounds */
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --bg-tertiary: #334155;
-            --bg-accent: #475569;
-            
-            /* Text Colors - High Contrast */
-            --text-primary: #f8fafc;
-            --text-secondary: #e2e8f0;
-            --text-muted: #cbd5e1;
-            --text-light: #94a3b8;
-            
-            /* Interactive Elements */
-            --border-color: #475569;
-            --border-light: #334155;
-            --shadow-color: rgba(0,0,0,0.25);
-            --shadow-hover: rgba(0,0,0,0.35);
-            
-            /* Component Specific */
-            --navbar-bg: #1e293b;
-            --card-bg: #1e293b;
-            --input-bg: #334155;
-            --dropdown-bg: #1e293b;
-        }
-
-        /* BASE STYLES */
+        
         * {
-            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-
+        
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-secondary);
-            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9;
+            color: var(--dark-color);
             line-height: 1.6;
         }
-
-        /* NAVBAR STYLES */
-        .navbar {
-            background: var(--navbar-bg) !important;
-            box-shadow: 0 2px 4px var(--shadow-color);
-            border-bottom: 1px solid var(--border-color);
-            backdrop-filter: blur(10px);
+        
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
         }
-
-        .navbar-brand {
+        
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .sidebar-header h3 {
             font-weight: 700;
-            color: var(--primary-color) !important;
             font-size: 1.5rem;
+            margin: 0;
         }
-
+        
+        .sidebar-header .subtitle {
+            font-size: 0.875rem;
+            opacity: 0.8;
+            margin-top: 0.25rem;
+        }
+        
+        .sidebar-nav {
+            padding: 1rem 0;
+        }
+        
+        .nav-item {
+            margin: 0.25rem 1rem;
+        }
+        
         .nav-link {
-            color: var(--text-secondary) !important;
+            display: flex;
+            align-items: center;
+            padding: 0.875rem 1rem;
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            border-radius: 0.75rem;
+            transition: all 0.3s ease;
             font-weight: 500;
-            transition: all 0.2s ease;
         }
-
-        .nav-link:hover {
-            color: var(--primary-color) !important;
-            transform: translateY(-1px);
+        
+        .nav-link:hover, .nav-link.active {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            transform: translateX(5px);
         }
-
-        /* CARD STYLES */
-        .card {
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            box-shadow: 0 2px 8px var(--shadow-color);
-            background: var(--card-bg);
+        
+        .nav-link i {
+            margin-right: 0.75rem;
+            width: 20px;
+            text-align: center;
+        }
+        
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
             transition: all 0.3s ease;
         }
-
+        
+        .top-navbar {
+            background: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .content-wrapper {
+            padding: 2rem;
+        }
+        
+        /* Cards */
+        .card {
+            border: none;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+        
         .card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px var(--shadow-hover);
-            border-color: var(--border-light);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
         }
-
+        
         .card-header {
-            background: var(--bg-tertiary) !important;
-            color: var(--text-primary) !important;
-            border-bottom: 1px solid var(--border-color);
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            border-radius: 1rem 1rem 0 0 !important;
+            padding: 1.5rem;
             font-weight: 600;
         }
-
-        /* BUTTON STYLES */
+        
+        /* Buttons */
         .btn {
-            border-radius: 10px;
+            border-radius: 0.75rem;
             font-weight: 500;
             padding: 0.75rem 1.5rem;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
             border: none;
         }
-
+        
         .btn-primary {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-            color: white;
-            border: 1px solid var(--primary-color);
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
         }
-
+        
         .btn-primary:hover {
-            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 15px rgba(96, 165, 250, 0.4);
-            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(37, 99, 235, 0.3);
         }
-
-        .btn-success {
-            background: var(--success-color);
-            color: white;
-        }
-
-        .btn-warning {
-            background: var(--warning-color);
-            color: white;
-        }
-
-        .btn-outline-primary {
-            color: var(--primary-color);
-            border: 1px solid var(--primary-color);
-            background: transparent;
-        }
-
-        .btn-outline-primary:hover {
-            background: var(--primary-color);
-            border-color: var(--primary-color);
-            color: white;
-        }
-
-        .btn-outline-secondary {
-            color: var(--text-secondary);
-            border: 1px solid var(--border-color);
-            background: transparent;
-        }
-
-        .btn-outline-secondary:hover {
-            background: var(--bg-tertiary);
-            border-color: var(--border-color);
-            color: var(--text-primary);
-        }
-
-        /* FORM STYLES */
-        .form-control {
-            background: var(--input-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            border-radius: 8px;
-        }
-
-        .form-control:focus {
-            background: var(--card-bg);
-            border-color: var(--primary-color);
-            color: var(--text-primary);
-            box-shadow: 0 0 0 0.25rem rgba(96, 165, 250, 0.25);
-        }
-
-        .form-label {
-            color: var(--text-primary);
-            font-weight: 500;
-        }
-
-        .form-text {
-            color: var(--text-muted);
-        }
-
-        /* SEARCH STYLES */
-        .search-container {
-            position: relative;
-            max-width: 400px;
-            margin: 0 auto;
-        }
-
-        .search-input {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            border-radius: 25px;
-            padding: 0.75rem 1rem 0.75rem 2.5rem;
-            width: 100%;
-            transition: all 0.3s ease;
-        }
-
-        .search-input:focus {
-            background: var(--card-bg);
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
-            outline: none;
-            color: var(--text-primary);
-        }
-
-        .search-input::placeholder {
-            color: var(--text-muted);
-        }
-
-        .search-icon {
-            position: absolute;
-            left: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-muted);
-        }
-
-        .search-suggestions {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: var(--dropdown-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            box-shadow: 0 8px 25px var(--shadow-color);
-            z-index: 1000;
-            max-height: 300px;
-            overflow-y: auto;
-            display: none;
-        }
-
-        .suggestion-item {
-            padding: 0.75rem 1rem;
-            cursor: pointer;
-            border-bottom: 1px solid var(--border-light);
-            transition: all 0.2s ease;
-            color: var(--text-primary);
-        }
-
-        .suggestion-item:hover {
-            background: var(--bg-tertiary);
-        }
-
-        .suggestion-item:last-child {
-            border-bottom: none;
-        }
-
-        /* THEME TOGGLE */
-        .theme-toggle {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            border-radius: 20px;
+        
+        /* Status badges */
+        .status-badge {
             padding: 0.5rem 1rem;
-            transition: all 0.3s ease;
-        }
-
-        .theme-toggle:hover {
-            background: var(--primary-color);
-            color: white;
-            transform: scale(1.05);
-        }
-
-        /* DROPDOWN MENU */
-        .dropdown-menu {
-            background: var(--dropdown-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            box-shadow: 0 8px 25px var(--shadow-color);
-        }
-
-        .dropdown-item {
-            color: var(--text-primary);
-            padding: 0.75rem 1rem;
-            transition: all 0.2s ease;
-        }
-
-        .dropdown-item:hover {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-        }
-
-        .dropdown-divider {
-            border-color: var(--border-color);
-        }
-
-        /* TABLE STYLES */
-        .table {
-            background: var(--card-bg);
-            color: var(--text-primary);
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px var(--shadow-color);
-        }
-
-        .table th {
-            background: var(--bg-tertiary);
-            border: none;
+            border-radius: 2rem;
+            font-size: 0.875rem;
             font-weight: 600;
-            color: var(--text-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+        
+        .status-understock { background: #fecaca; color: #991b1b; }
+        .status-overstock { background: #fed7aa; color: #9a3412; }
+        .status-low { background: #fef3c7; color: #92400e; }
+        .status-high { background: #bbf7d0; color: #166534; }
+        .status-optimal { background: #dcfce7; color: #166534; }
+        
+        /* Alert styles */
+        .alert {
+            border-radius: 1rem;
+            border: none;
+            padding: 1.25rem;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                margin-left: calc(-1 * var(--sidebar-width));
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .content-wrapper {
+                padding: 1rem;
+            }
+        }
+        
+        /* Loading animation */
+        .spinner-grow {
+            animation-duration: 0.8s;
+        }
+        
+        /* Table improvements */
+        .table {
+            background: white;
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+        
+        .table th {
+            background: #f8fafc;
+            font-weight: 600;
+            border: none;
             padding: 1rem;
         }
-
+        
         .table td {
             border: none;
             padding: 1rem;
             vertical-align: middle;
-            color: var(--text-primary);
         }
-
-        .table-hover tbody tr:hover {
-            background-color: var(--bg-tertiary);
-            color: var(--text-primary);
-        }
-
-        .table-striped tbody tr:nth-of-type(odd) {
-            background-color: var(--bg-tertiary);
-        }
-
-        .table code {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.875rem;
-        }
-
-        /* BADGE STYLES */
-        .badge {
-            font-weight: 500;
-            padding: 0.5rem 0.75rem;
-            border-radius: 8px;
-        }
-
-        .badge.bg-primary { background: var(--primary-color) !important; color: white; }
-        .badge.bg-success { background: var(--success-color) !important; color: white; }
-        .badge.bg-warning { background: var(--warning-color) !important; color: white; }
-        .badge.bg-danger { background: var(--danger-color) !important; color: white; }
-        .badge.bg-info { background: var(--info-color) !important; color: white; }
-        .badge.bg-secondary { background: var(--secondary-color) !important; color: white; }
-
-        /* ALERT STYLES */
-        .alert {
-            border: none;
-            border-radius: 12px;
-            font-weight: 500;
-        }
-
-        .alert-success {
-            background: rgba(52, 211, 153, 0.15);
-            border: 1px solid var(--success-color);
-            color: var(--success-color);
-        }
-
-        .alert-warning {
-            background: rgba(251, 191, 36, 0.15);
-            border: 1px solid var(--warning-color);
-            color: var(--warning-color);
-        }
-
-        .alert-danger {
-            background: rgba(248, 113, 113, 0.15);
-            border: 1px solid var(--danger-color);
-            color: var(--danger-color);
-        }
-
-        .alert-info {
-            background: rgba(56, 189, 248, 0.15);
-            border: 1px solid var(--info-color);
-            color: var(--info-color);
-        }
-
-        /* HERO SECTION */
-        .hero-gradient {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%) !important;
-            color: white !important;
-        }
-
-        /* TEXT UTILITIES */
-        .text-primary { color: var(--primary-color) !important; }
-        .text-secondary { color: var(--text-secondary) !important; }
-        .text-muted { color: var(--text-muted) !important; }
-        .text-success { color: var(--success-color) !important; }
-        .text-warning { color: var(--warning-color) !important; }
-        .text-danger { color: var(--danger-color) !important; }
-        .text-info { color: var(--info-color) !important; }
-
-        /* CLOSE BUTTON */
-        [data-theme="dark"] .btn-close {
-            filter: invert(1);
-        }
-
-        /* FOOTER */
-        footer {
-            background: var(--navbar-bg);
-            border-top: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            backdrop-filter: blur(10px);
-        }
-
-        /* RESPONSIVE */
-        @media (max-width: 768px) {
-            .search-container { max-width: 100%; }
-            .btn-lg { padding: 0.75rem 1.25rem; font-size: 1rem; }
-            .card-body.p-5 { padding: 2rem !important; }
-            .display-5 { font-size: 2rem; }
-        }
-
-        /* SCROLLBAR STYLING */
-        [data-theme="dark"] ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        [data-theme="dark"] ::-webkit-scrollbar-track {
-            background: var(--bg-secondary);
-        }
-
-        [data-theme="dark"] ::-webkit-scrollbar-thumb {
-            background: var(--border-color);
-            border-radius: 4px;
-        }
-
-        [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
-            background: var(--text-muted);
-        }
-
-        /* UPLOAD AREA */
-        .upload-area {
-            border: 2px dashed var(--border-color);
-            border-radius: 12px;
-            background: var(--bg-tertiary);
-            transition: all 0.3s ease;
-        }
-
-        .upload-area:hover {
-            border-color: var(--primary-color) !important;
-            background: var(--bg-secondary) !important;
-        }
-
-        /* MARK/HIGHLIGHT */
-        mark {
-            background: var(--primary-color);
-            color: white;
-            padding: 0.1em 0.2em;
-            border-radius: 3px;
+        
+        .table tbody tr:hover {
+            background: #f8fafc;
         }
     </style>
+    
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-light sticky-top">
-        <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
-                <i class="fas fa-chart-line me-2"></i>
-                Inventory Pro
-            </a>
-            
-            <!-- Search Bar -->
-            <div class="search-container d-none d-md-block">
-                <i class="fas fa-search search-icon"></i>
-                <input type="text" class="search-input" placeholder="Search features, pages..." id="searchInput">
-                <div class="search-suggestions" id="searchSuggestions"></div>
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h3><i class="fas fa-boxes"></i> InventoryPro</h3>
+            <div class="subtitle">Smart Inventory Management</div>
+        </div>
+        
+        <div class="sidebar-nav">
+            <div class="nav-item">
+                <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
             </div>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <!-- Mobile Search -->
-                    <li class="nav-item d-md-none">
-                        <div class="search-container mt-2 mb-2">
-                            <i class="fas fa-search search-icon"></i>
-                            <input type="text" class="search-input" placeholder="Search features..." id="mobileSearchInput">
-                        </div>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('index') }}">
-                            <i class="fas fa-home me-1"></i>Dashboard
-                        </a>
-                    </li>
-                    
-                    <!-- Menu Dropdown -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                            <i class="fas fa-bars me-1"></i>Menu
-                        </a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('upload_file') }}">
-                                <i class="fas fa-upload me-2"></i>Upload CSV File
-                            </a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('use_sample_data') }}">
-                                <i class="fas fa-database me-2"></i>Load Sample Data
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('email_config_page') }}">
-                                <i class="fas fa-cog me-2"></i>Email Settings
-                            </a></li>
-                            <li><a class="dropdown-item" href="#" onclick="exportData()">
-                                <i class="fas fa-download me-2"></i>Export Results
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#" onclick="showHelp()">
-                                <i class="fas fa-question-circle me-2"></i>Help & Support
-                            </a></li>
-                            <li><a class="dropdown-item" href="#" onclick="showAbout()">
-                                <i class="fas fa-info-circle me-2"></i>About
-                            </a></li>
-                        </ul>
-                    </li>
-                    
-                    <!-- Theme Toggle -->
-                    <li class="nav-item">
-                        <button class="theme-toggle ms-2" onclick="toggleTheme()" id="themeToggle">
-                            <i class="fas fa-moon" id="themeIcon"></i>
-                        </button>
-                    </li>
-                </ul>
+            <div class="nav-item">
+                <a href="{{ url_for('upload_file') }}" class="nav-link {% if request.endpoint == 'upload_file' %}active{% endif %}">
+                    <i class="fas fa-upload"></i> Upload Data
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('use_sample_data') }}" class="nav-link">
+                    <i class="fas fa-database"></i> Sample Data
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('results') }}" class="nav-link {% if request.endpoint == 'results' %}active{% endif %}">
+                    <i class="fas fa-chart-bar"></i> Analytics
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="{{ url_for('set_email') }}" class="nav-link {% if request.endpoint == 'set_email' %}active{% endif %}">
+                    <i class="fas fa-envelope"></i> Email Settings
+                </a>
             </div>
         </div>
     </nav>
-
+    
     <!-- Main Content -->
-    <main class="container mt-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
+    <main class="main-content">
+        <!-- Top Navigation -->
+        <nav class="top-navbar">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="mb-0">{% block page_title %}Dashboard{% endblock %}</h4>
+                    <small class="text-muted">{% block page_subtitle %}Welcome back to your inventory management system{% endblock %}</small>
+                </div>
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <small class="text-muted">Receiver Email:</small>
+                        <span class="badge bg-{{ 'success' if receiver else 'warning' }} ms-1">
+                            {{ receiver or 'Not Set' }}
+                        </span>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-user"></i> Profile
+                    </button>
+                </div>
+            </div>
+        </nav>
+        
+        <!-- Page Content -->
+        <div class="content-wrapper">
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+              {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
-                        <i class="fas fa-{{ 'exclamation-circle' if category == 'error' else 'check-circle' if category == 'success' else 'info-circle' }} me-2"></i>
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
+                  <div class="alert alert-{{ 'danger' if category in ['error', 'danger'] else category }} alert-dismissible fade show" role="alert">
+                    <i class="fas fa-{{ 'exclamation-triangle' if category in ['error', 'danger'] else 'check-circle' if category == 'success' else 'info-circle' }} me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                  </div>
                 {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        {% block content %}{% endblock %}
-    </main>
-
-    <!-- Footer -->
-    <footer class="mt-5 py-4 text-center">
-        <div class="container">
-            <p class="mb-0">© 2025 Professional Inventory Management System. Built with Flask & Bootstrap.</p>
+              {% endif %}
+            {% endwith %}
+            
+            {% block content %}{% endblock %}
         </div>
-    </footer>
-
+    </main>
+    
     <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- Custom JavaScript -->
-    <script>
-        // Search functionality
-        const searchSuggestions = [
-            { title: 'CSV File Upload', description: 'Upload your inventory data', url: '/upload', icon: 'fas fa-file-csv' },
-            { title: 'Sample Data', description: 'Try with sample inventory data', url: '/sample-data', icon: 'fas fa-database' },
-            { title: 'Email Configuration', description: 'Setup email alerts', url: '/email-config', icon: 'fas fa-envelope' },
-            { title: 'Dashboard', description: 'Main inventory dashboard', url: '/', icon: 'fas fa-home' },
-            { title: 'Analysis Results', description: 'View analysis results', url: '/results', icon: 'fas fa-chart-pie' },
-            { title: 'Export Data', description: 'Download analysis results', action: 'exportData', icon: 'fas fa-download' },
-            { title: 'Help Center', description: 'Get help and support', action: 'showHelp', icon: 'fas fa-question-circle' },
-            { title: 'Theme Settings', description: 'Switch between light/dark theme', action: 'toggleTheme', icon: 'fas fa-palette' }
-        ];
-
-        function setupSearch(inputId, suggestionsId) {
-            const input = document.getElementById(inputId);
-            const suggestions = document.getElementById(suggestionsId) || createSuggestionsElement(input);
-            
-            if (!input) return;
-
-            input.addEventListener('input', function() {
-                const query = this.value.toLowerCase().trim();
-                
-                if (query.length === 0) {
-                    suggestions.style.display = 'none';
-                    return;
-                }
-
-                const filtered = searchSuggestions.filter(item => 
-                    item.title.toLowerCase().includes(query) || 
-                    item.description.toLowerCase().includes(query)
-                );
-
-                if (filtered.length > 0) {
-                    suggestions.innerHTML = filtered.map(item => `
-                        <div class="suggestion-item" onclick="handleSuggestionClick('${item.url || ''}', '${item.action || ''}')">
-                            <i class="${item.icon} me-2 text-primary"></i>
-                            <strong>${item.title}</strong>
-                            <br><small class="text-muted">${item.description}</small>
-                        </div>
-                    `).join('');
-                    suggestions.style.display = 'block';
-                } else {
-                    suggestions.style.display = 'none';
-                }
-            });
-
-            // Hide suggestions when clicking outside
-            document.addEventListener('click', function(e) {
-                if (!input.contains(e.target) && !suggestions.contains(e.target)) {
-                    suggestions.style.display = 'none';
-                }
-            });
-        }
-
-        function createSuggestionsElement(input) {
-            const suggestions = document.createElement('div');
-            suggestions.className = 'search-suggestions';
-            suggestions.style.position = 'absolute';
-            suggestions.style.top = '100%';
-            suggestions.style.left = '0';
-            suggestions.style.right = '0';
-            suggestions.style.zIndex = '1000';
-            input.parentNode.appendChild(suggestions);
-            return suggestions;
-        }
-
-        function handleSuggestionClick(url, action) {
-            if (url) {
-                window.location.href = url;
-            } else if (action) {
-                window[action]();
-            }
-            
-            // Hide suggestions
-            document.getElementById('searchSuggestions').style.display = 'none';
-            document.querySelector('.search-input').value = '';
-        }
-
-        // Theme functionality
-        function toggleTheme() {
-            const html = document.documentElement;
-            const currentTheme = html.getAttribute('data-theme');
-            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-            
-            html.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            
-            const themeIcon = document.getElementById('themeIcon');
-            themeIcon.className = newTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
-            
-            // Show notification
-            showNotification(`Switched to ${newTheme} theme`, 'success');
-        }
-
-        // Load saved theme
-        function loadTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            document.documentElement.setAttribute('data-theme', savedTheme);
-            
-            const themeIcon = document.getElementById('themeIcon');
-            themeIcon.className = savedTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun';
-        }
-
-        function showNotification(message, type = 'info') {
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-            alertDiv.style.position = 'fixed';
-            alertDiv.style.top = '20px';
-            alertDiv.style.right = '20px';
-            alertDiv.style.zIndex = '9999';
-            alertDiv.innerHTML = `
-                <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'} me-2"></i>
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            `;
-            
-            document.body.appendChild(alertDiv);
-            
-            // Auto-dismiss after 3 seconds
-            setTimeout(() => {
-                if (alertDiv.parentNode) {
-                    alertDiv.remove();
-                }
-            }, 3000);
-        }
-
-        // Menu actions
-        function exportData() {
-            const sessionId = "{{ session.get('analysis_id', '') }}";
-            if (sessionId) {
-                window.location.href = `/export-results/${sessionId}`;
-            } else {
-                showNotification('No analysis results available to export. Please run an analysis first.', 'warning');
-            }
-        }
-
-        function showHelp() {
-            const helpModal = `
-                <div class="modal fade" id="helpModal" tabindex="-1">
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title"><i class="fas fa-question-circle me-2"></i>Help & Support</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                <h6><i class="fas fa-upload me-2"></i>Getting Started</h6>
-                                <p>1. Upload your CSV file with inventory data or use sample data</p>
-                                <p>2. Wait for analysis to complete</p>
-                                <p>3. Review recommendations and export results</p>
-                                
-                                <h6><i class="fas fa-file-csv me-2"></i>CSV Format Requirements</h6>
-                                <p>Required columns: product_id, product_name, current_stock, ideal_stock_level, status</p>
-                                
-                                <h6><i class="fas fa-envelope me-2"></i>Email Alerts</h6>
-                                <p>Configure SMTP settings to receive automated inventory alerts</p>
-                                
-                                <h6><i class="fas fa-palette me-2"></i>Themes</h6>
-                                <p>Toggle between light and dark themes using the theme button</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            document.body.insertAdjacentHTML('beforeend', helpModal);
-            new bootstrap.Modal(document.getElementById('helpModal')).show();
-            
-            // Remove modal after hiding
-            document.getElementById('helpModal').addEventListener('hidden.bs.modal', function() {
-                this.remove();
-            });
-        }
-
-        function showAbout() {
-            const aboutModal = `
-                <div class="modal fade" id="aboutModal" tabindex="-1">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title"><i class="fas fa-info-circle me-2"></i>About Inventory Pro</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body text-center">
-                                <i class="fas fa-chart-line fa-4x text-primary mb-3"></i>
-                                <h4>Inventory Management Pro</h4>
-                                <p class="text-muted">Version 2.1</p>
-                                <p>Professional inventory optimization with predictive analytics and automated email alerts.</p>
-                                <hr>
-                                <p><strong>Features:</strong></p>
-                                <ul class="list-unstyled">
-                                    <li><i class="fas fa-check text-success me-2"></i>AI-powered analysis</li>
-                                    <li><i class="fas fa-check text-success me-2"></i>Email notifications</li>
-                                    <li><i class="fas fa-check text-success me-2"></i>Dark/Light themes</li>
-                                    <li><i class="fas fa-check text-success me-2"></i>CSV data import</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            document.body.insertAdjacentHTML('beforeend', aboutModal);
-            new bootstrap.Modal(document.getElementById('aboutModal')).show();
-            
-            // Remove modal after hiding
-            document.getElementById('aboutModal').addEventListener('hidden.bs.modal', function() {
-                this.remove();
-            });
-        }
-
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            loadTheme();
-            setupSearch('searchInput', 'searchSuggestions');
-            setupSearch('mobileSearchInput', null);
-        });
-    </script>
-    
-    {% block scripts %}{% endblock %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>
