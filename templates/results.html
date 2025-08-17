@@ -63,6 +63,60 @@
             margin: 2rem auto;
             padding: 1rem;
         }
+        
+        /* Chart click effect */
+        .chart-container {
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .chart-container:hover {
+            transform: scale(1.02);
+        }
+        
+        /* Fullscreen modal styles */
+        .fullscreen-modal {
+            background: rgba(0, 0, 0, 0.9);
+        }
+        .fullscreen-chart {
+            max-width: 95vw;
+            max-height: 85vh;
+            object-fit: contain;
+        }
+
+        /* Enhanced button styling */
+        .btn-lg {
+            border-radius: 25px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .btn-lg:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            border: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #6c757d, #545b62);
+            border: none;
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #ffc107, #e0a800);
+            border: none;
+            color: #000;
+        }
+
+        .btn-toolbar {
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
     </style>
 </head>
 <body>
@@ -92,17 +146,19 @@
 </nav>
 
 <div class="container main-container">
-
     {% if result.chart %}
     <div class="card mb-4">
         <div class="card-body text-center">
             <h5 class="fw-bold mb-3">Current vs Ideal Stock Levels</h5>
-            <div class="overflow-auto">
-                <img src="{{ result.chart }}" alt="Inventory Chart" class="img-fluid rounded shadow" style="max-width: 900px;">
+            <div class="chart-container" onclick="showFullscreenChart()">
+                <img src="{{ result.chart }}" alt="Inventory Chart" class="img-fluid rounded shadow" style="max-width: 900px;" id="chartImage">
+                <div class="mt-2">
+                    <small class="text-primary"><i class="fas fa-expand me-1"></i>Click chart to view fullscreen</small>
+                </div>
             </div>
             <small class="text-muted d-block mt-2">
-                <span style="color:#ff6384;">&#9632; Red = Current Stock</span>,
-                <span style="color:#36aebd;">&#9632; Teal = Ideal Stock</span>
+                <span style="color:#ff6384;">■ Red = Current Stock</span>,
+                <span style="color:#36aebd;">■ Teal = AI Calculated Ideal Stock</span>
             </small>
         </div>
     </div>
@@ -137,61 +193,58 @@
     </div>
     {% endif %}
 
-    <div class="card shadow mb-5">
+        <div class="card shadow mb-5">
         <div class="card-header bg-dark text-white">
             <h5 class="mb-0">Detailed Product Report</h5>
         </div>
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-striped table-hover mb-0 align-middle">
+                <table class="table table-striped table-hover mb-0 align-middle" style="font-size: 0.9rem;">
                     <thead class="table-dark">
                         <tr>
-                            <th>Product ID</th>
-                            <th>Product Name</th>
-                            <th>Current Stock</th>
-                            <th>Ideal Stock</th>
-                            <th>Status</th>
-                            <th>Priority</th>
-                            <th>Action</th>
-                            <th>Expiry</th>
+                            <th style="width: 8%;">ID</th>
+                            <th style="width: 18%;">Product</th>
+                            <th style="width: 10%;">Current</th>
+                            <th style="width: 10%;">Ideal</th>
+                            <th style="width: 8%;">Trend</th>
+                            <th style="width: 12%;">Status</th>
+                            <th style="width: 8%;">Priority</th>
+                            <th style="width: 16%;">Action</th>
+                            <th style="width: 10%;">Expiry</th>
                         </tr>
                     </thead>
                     <tbody>
                     {% for item in result.recommendations %}
                         <tr>
                             <td class="fw-semibold text-danger">{{ item.product_id }}</td>
-                            <td class="fw-bold">{{ item.product_name }}</td>
-                            <td><span class="badge bg-info">{{ item.current_stock }}</span></td>
-                            <td><span class="badge bg-secondary">{{ item.ideal_stock }}</span></td>
+                            <td class="fw-bold" style="word-break: break-word;">{{ item.product_name }}</td>
+                            <td><span class="badge bg-info fs-6">{{ item.current_stock }}</span></td>
+                            <td><span class="badge bg-success fs-6">{{ item.ideal_stock_level }}</span></td>
+                            <td><span class="badge bg-secondary fs-6">{{ item.trend }}</span></td>
                             <td>
                                 {% if 'critical' in item.status %}
-                                    <span class="badge bg-danger">{{ item.status.replace('_', ' ').title() }}</span>
+                                    <span class="badge bg-danger fs-6">{{ item.status.replace('_', ' ').title() }}</span>
                                 {% elif item.status == 'understock' %}
-                                    <span class="badge bg-warning text-dark">{{ item.status.title() }}</span>
+                                    <span class="badge bg-warning text-dark fs-6">{{ item.status.title() }}</span>
                                 {% elif item.status == 'overstock' %}
-                                    <span class="badge bg-info">{{ item.status.title() }}</span>
+                                    <span class="badge bg-info fs-6">{{ item.status.title() }}</span>
                                 {% else %}
-                                    <span class="badge bg-success">{{ item.status.title() }}</span>
+                                    <span class="badge bg-success fs-6">{{ item.status.title() }}</span>
                                 {% endif %}
                             </td>
                             <td>
-                                <strong class="
-                                   {% if item.priority == 'CRITICAL' %}text-danger
-                                   {% elif item.priority == 'HIGH' %}text-warning
-                                   {% elif item.priority == 'MEDIUM' %}text-info
-                                   {% else %}text-success
-                                   {% endif %}">
-                                   {{ item.priority }}
+                                <strong class="{% if item.priority == 'CRITICAL' %}text-danger {% elif item.priority == 'HIGH' %}text-warning {% elif item.priority == 'MEDIUM' %}text-info {% else %}text-success {% endif %}">
+                                    {{ item.priority }}
                                 </strong>
                             </td>
-                            <td>{{ item.action }}</td>
+                            <td style="word-break: break-word; font-size: 0.85rem;">{{ item.action }}</td>
                             <td>
                                 {% if item.days_left != '' and item.days_left != 'Expired' and item.days_left is not none %}
-                                    <span class="badge bg-warning text-dark">Expiry: {{ item.expiry_date }} ({{ item.days_left }} days)</span>
+                                    <span class="badge bg-warning text-dark fs-6">{{ item.expiry_date }}<br>({{ item.days_left }}d)</span>
                                 {% elif item.days_left == 'Expired' %}
-                                    <span class="badge bg-danger">Expired</span>
+                                    <span class="badge bg-danger fs-6">Expired</span>
                                 {% else %}
-                                    <span class="text-muted">N/A</span>
+                                    <span class="text-muted fs-6">N/A</span>
                                 {% endif %}
                             </td>
                         </tr>
@@ -202,14 +255,65 @@
         </div>
     </div>
 
+    <!-- Single, Clean Button Section -->
     <div class="text-center mb-5">
-        <a href="{{ url_for('index') }}" class="btn btn-primary me-2"><i class="fas fa-home me-1"></i>Back to Dashboard</a>
-        <a href="{{ url_for('upload_file') }}" class="btn btn-secondary me-2"><i class="fas fa-upload me-1"></i>Upload Data</a>
-        <a href="{{ url_for('use_sample_data') }}" class="btn btn-info"><i class="fas fa-database me-1"></i>Sample Data</a>
+        <div class="btn-toolbar justify-content-center" role="toolbar" aria-label="Navigation toolbar">
+            <div class="btn-group me-2" role="group" aria-label="Main actions">
+                <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg px-4">
+                    <i class="fas fa-home me-2"></i>Dashboard
+                </a>
+                <a href="{{ url_for('upload_file') }}" class="btn btn-secondary btn-lg px-4">
+                    <i class="fas fa-cloud-upload-alt me-2"></i>Upload Data
+                </a>
+                <a href="{{ url_for('previous_analyses') }}" class="btn btn-warning btn-lg px-4">
+                    <i class="fas fa-history me-2"></i>Previous Predictions
+                </a>
+            </div>
+        </div>
     </div>
 
 </div>
 
+<!-- Fullscreen Chart Modal -->
+<div class="modal fade fullscreen-modal" id="chartModal" tabindex="-1">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-white">
+                    <i class="fas fa-chart-bar me-2"></i>Current vs AI Ideal Stock Levels - Fullscreen View
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body d-flex justify-content-center align-items-center">
+                <img src="{{ result.chart }}" alt="Fullscreen Inventory Chart" class="fullscreen-chart rounded">
+            </div>
+            <div class="modal-footer border-0 justify-content-center">
+                <div class="text-white">
+                    <span style="color:#ff6384;">■ Red = Current Stock</span> |
+                    <span style="color:#36aebd;">■ Teal = AI Calculated Ideal Stock</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function showFullscreenChart() {
+    const modal = new bootstrap.Modal(document.getElementById('chartModal'));
+    modal.show();
+}
+
+// Add keyboard shortcut (ESC to close)
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('chartModal'));
+        if (modal) {
+            modal.hide();
+        }
+    }
+});
+
+</script>
 </body>
 </html>

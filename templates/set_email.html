@@ -4,166 +4,80 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Email Settings - InventoryPro</title>
-    
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-    
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    
-    <style>
-        body {
-            background: linear-gradient(120deg, #a6c0fe 0%, #f68084 100%);
-            min-height: 100vh;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        .navbar {
-            background: transparent;
-            box-shadow: none;
-            color: #273446;
-            font-weight: 700;
-        }
-        .navbar-brand {
-            color: #273446 !important;
-            font-weight: 700;
-            font-size: 1.5rem;
-            letter-spacing: 1px;
-        }
-        .navbar .nav-link,
-        .navbar .nav-link:hover {
-            color: #273446 !important;
-            font-weight: 600;
-        }
-        .card {
-            border-radius: 16px;
-            box-shadow: 0 15px 30px rgba(50, 50, 93, 0.1),
-                        0 5px 15px rgba(0, 0, 0, 0.07);
-            margin-top: 4rem;
-            padding: 2rem;
-            background-color: #ffffffcc;
-        }
-        .form-label {
-            font-weight: 600;
-            color: #334e68;
-        }
-        .form-control:focus {
-            border-color: #2874f0;
-            box-shadow: 0 0 0 0.2rem rgb(40 116 240 / 0.25);
-        }
-        .btn-primary {
-            border-radius: 30px;
-            background: #2874f0;
-            border: none;
-            font-weight: 600;
-            padding: 0.6rem 1.2rem;
-            box-shadow: 0 4px 15px rgb(40 116 240 / 0.4);
-            transition: background 0.3s ease;
-        }
-        .btn-primary:hover {
-            background: #1b4aca;
-            box-shadow: 0 6px 20px rgb(27 74 202 / 0.6);
-        }
-        .btn-outline-secondary {
-            border-radius: 30px;
-            border-color: #334e68;
-            color: #334e68;
-            font-weight: 600;
-            padding: 0.6rem 1.2rem;
-            transition: all 0.3s ease;
-        }
-        .btn-outline-secondary:hover {
-            background-color: #334e68;
-            color: white;
-            border-color: #1e3249;
-        }
-        .text-muted small {
-            letter-spacing: 0.5px;
-        }
-        .flash-message .alert {
-            border-radius: 12px;
-            font-weight: 600;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-        .validation-errors {
-            color: #d0312d;
-            font-size: 0.875rem;
-            margin-top: 0.25rem;
-        }
-    </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg px-5 py-3">
-        <div class="container-fluid">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">
-                <i class="fas fa-cubes me-2"></i>InventoryPro
+                <i class="fas fa-boxes me-2"></i>InventoryPro
             </a>
-            <div class="d-flex gap-3">
-                <a href="{{ url_for('index') }}" class="nav-link">Dashboard</a>
-                <a href="{{ url_for('upload') }}" class="nav-link">Upload</a>
-                <a href="{{ url_for('results') }}" class="nav-link">Analysis</a>
-            </div>
-            <div>
-                <span class="fw-semibold text-secondary">
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">
                     Receiver Email: 
                     {% if receiver_email %}
-                        <span class="badge bg-success fs-6">{{ receiver_email }}</span>
+                        <span class="badge bg-success">{{ receiver_email }}</span>
                     {% else %}
-                        <span class="badge bg-warning text-dark fs-6">Not Set</span>
+                        <span class="badge bg-warning text-dark">Not Set</span>
                     {% endif %}
                 </span>
             </div>
         </div>
     </nav>
 
-    <div class="container d-flex justify-content-center">
-        <div class="card col-md-6 shadow-lg">
-            <h3 class="mb-4 text-center fw-bold text-primary">
-                <i class="fas fa-envelope me-2"></i>Email Notification Settings
-            </h3>
-
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <div class="flash-message mb-4">
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ 'danger' if category in ['error','danger'] else 'success' }} alert-dismissible fade show" role="alert">
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4><i class="fas fa-envelope me-2"></i>Email Notification Settings</h4>
+                    </div>
+                    <div class="card-body">
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                          {% if messages %}
+                            {% for category, message in messages %}
+                              <div class="alert alert-{{ 'danger' if category in ['error','danger'] else 'success' }} alert-dismissible fade show" role="alert">
                                 {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            {% endwith %}
-
-            <form method="POST" novalidate>
-                {{ form.hidden_tag() }}
-                <div class="mb-4">
-                    {{ form.email.label(class="form-label") }}
-                    {{ form.email(class="form-control", placeholder="Enter your email address (e.g., user@gmail.com)") }}
-                    {% if form.email.errors %}
-                        <div class="validation-errors">
-                            {% for error in form.email.errors %}
-                                <i class="fas fa-exclamation-circle me-1"></i>{{ error }}<br />
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                              </div>
                             {% endfor %}
-                        </div>
-                    {% endif %}
-                    <div class="form-text mt-2 text-secondary">
-                        <i class="fas fa-info-circle me-1"></i>
-                        You'll receive alerts for critical stock issues.
-                    </div>
-                    <div class="form-text mt-1 text-muted fst-italic" style="font-size: 0.9rem;">
-                        Examples: <a href="mailto:user@gmail.com">user@gmail.com</a>, <a href="mailto:name@yahoo.com">name@yahoo.com</a>, <a href="mailto:email@company.org">email@company.org</a>
-                    </div>
-                </div>
+                          {% endif %}
+                        {% endwith %}
 
-                <div class="d-grid gap-3">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-2"></i>Save Email Settings
-                    </button>
-                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
-                    </a>
+                        <form method="POST">
+                            {{ form.hidden_tag() }}
+                            
+                            <div class="mb-3">
+                                {{ form.email.label(class="form-label") }}
+                                {{ form.email(class="form-control", placeholder="Enter your email address") }}
+                                
+                                {% if form.email.errors %}
+                                    {% for error in form.email.errors %}
+                                        <div class="text-danger mt-2">
+                                            <i class="fas fa-exclamation-circle me-1"></i>{{ error }}
+                                        </div>
+                                    {% endfor %}
+                                {% endif %}
+                                
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    You'll receive alerts for critical stock issues
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Save Email Settings
+                                </button>
+                                <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                                </a>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 
