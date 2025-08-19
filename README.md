@@ -17,3 +17,6 @@ A smart Flask-based inventory management system that analyzes stock levels, pred
 ## Quick Start
 
 ### 1. Install Requirements
+
+### 2. Configure Email (Optional)
+In `app.py`, update these settings:
