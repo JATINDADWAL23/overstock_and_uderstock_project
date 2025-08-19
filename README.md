@@ -114,18 +114,24 @@ SMTP_PORT = 587
 
 
 ## File Structure
-inventorypro/
-├── app.py # Main Flask application
-├── templates/
-│ ├── index.html # Dashboard
-│ ├── upload.html # File upload page
-│ ├── results.html # Analysis results
-│ ├── previous_analyses.html # Historical data
-│ └── set_email.html # Email configuration
-├── static/
-│ ├── uploads/ # Temporary file storage
-│ └── results/ # Analysis results storage
-└── README.md # This file
+InventoryPro/
+│
+├── 📄 app.py Main Flask application
+│
+├── 📁 templates/ HTML template files
+│ ├── 🏠 index.html Dashboard homepage
+│ ├── 📤 upload.html File upload page
+│ ├── 📊 results.html Analysis results
+│ ├── 📚 previous_analyses.html Historical data
+│ └── ⚙️ set_email.html Email settings
+│
+├── 📁 static/ Static files
+│ ├── 📂 uploads/ Temporary storage
+│ └── 📂 results/ Analysis data
+│
+├── 📝 README.md Documentation
+├── 📋 requirements.txt Dependencies
+└── ⚙️ .env Configuration
 
 
 ## Advanced Features
