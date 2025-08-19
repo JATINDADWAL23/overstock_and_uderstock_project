@@ -119,6 +119,7 @@ InventoryPro/
 │
 
 ├── 📄 app.py Main Flask application
+
 │
 
 ├── 📁 templates/ HTML template files
