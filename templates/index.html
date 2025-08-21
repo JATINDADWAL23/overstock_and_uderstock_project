@@ -918,6 +918,20 @@
                 link.classList.add('active');
             }
         });
+        <!-- Add this to your index.html or previous_analyses.html -->
+<div class="text-center mb-3">
+    <form method="POST" action="{{ url_for('clear_all_data') }}" style="display:inline;" 
+          onsubmit="return confirm('Are you sure you want to clear ALL data? This cannot be undone!')">
+        <button type="submit" class="btn btn-danger btn-lg me-2">
+            <i class="fas fa-trash me-2"></i>Clear All Data
+        </button>
+    </form>
+    
+    <a href="{{ url_for('debug_files') }}" class="btn btn-info btn-sm">
+        <i class="fas fa-bug me-1"></i>Debug Files
+    </a>
+</div>
+
     </script>
 </body>
 </html>

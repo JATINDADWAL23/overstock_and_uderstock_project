@@ -239,10 +239,12 @@
                             </td>
                             <td style="word-break: break-word; font-size: 0.85rem;">{{ item.action }}</td>
                             <td>
-                                {% if item.days_left != '' and item.days_left != 'Expired' and item.days_left is not none %}
+                                {% if item.days_left == 'Expired' or item.days_left == 'Expires Today' %}
+                                    <span class="badge bg-danger fs-6">{{ item.days_left }}</span>
+                                {% elif item.days_left and item.days_left.isdigit() and item.days_left|int <= 7 %}
                                     <span class="badge bg-warning text-dark fs-6">{{ item.expiry_date }}<br>({{ item.days_left }}d)</span>
-                                {% elif item.days_left == 'Expired' %}
-                                    <span class="badge bg-danger fs-6">Expired</span>
+                                {% elif item.days_left and item.days_left != '' %}
+                                    <span class="badge bg-info fs-6">{{ item.expiry_date }}<br>({{ item.days_left }}d)</span>
                                 {% else %}
                                     <span class="text-muted fs-6">N/A</span>
                                 {% endif %}
@@ -305,7 +307,6 @@
     </form>
 </div>
 
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 function showFullscreenChart() {
@@ -322,7 +323,6 @@ document.addEventListener('keydown', function(event) {
         }
     }
 });
-
 </script>
 </body>
 </html>

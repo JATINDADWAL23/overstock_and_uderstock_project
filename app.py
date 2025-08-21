@@ -26,9 +26,13 @@ app.config['RESULTS_FOLDER'] = 'static/results'
 
 # Email config - replace with your email and app password
 SENDER_EMAIL = "jatindadwal56@gmail.com"
-SENDER_PASSWORD = "qekrgjxielyfyadc"
+SENDER_PASSWORD = "qekrgjxielyfyadc"  # Use your Gmail App Password here
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
+
+# Ensure directories exist
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(app.config['RESULTS_FOLDER'], exist_ok=True)
 
 # Forms
 class FileUploadForm(FlaskForm):
@@ -60,7 +64,7 @@ def add_upload_history(filename, product_count, upload_time):
                 history = json.load(f)
         else:
             history = []
-        history.insert(0, entry)  # newest on top
+        history.insert(0, entry)
         with open('upload_history.json', 'w') as f:
             json.dump(history, f)
     except Exception as e:
@@ -115,14 +119,11 @@ def save_results(results):
         timestamp = str(int(time.time()))
         results_file = os.path.join(app.config['RESULTS_FOLDER'], f'results_{timestamp}.json')
         
-        # Ensure directory exists
         os.makedirs(app.config['RESULTS_FOLDER'], exist_ok=True)
         
-        # Save the results
         with open(results_file, 'w') as f:
             json.dump(results, f, indent=2)
         
-        # Update latest results pointer
         with open('latest_results.txt', 'w') as f:
             f.write(timestamp)
             
@@ -151,88 +152,6 @@ def load_results():
         print(f"Error loading results: {e}")
         return None
 
-def analyze_data_with_ai(df):
-    """Analyze inventory data and provide AI-enhanced recommendations"""
-    try:
-        # Convert columns to appropriate types
-        df['current_stock'] = pd.to_numeric(df['current_stock'], errors='coerce')
-        df['ideal_stock_level'] = pd.to_numeric(df['ideal_stock_level'], errors='coerce')
-        
-        recommendations = []
-        expiry_alerts = []
-        
-        for _, row in df.iterrows():
-            current = row['current_stock']
-            ideal = row['ideal_stock_level']
-            ratio = current / ideal if ideal > 0 else 0
-            
-            # Determine status and priority
-            if ratio <= 0.25:
-                status = 'critical_understock'
-                priority = 'CRITICAL'
-            elif ratio <= 0.75:
-                status = 'understock'
-                priority = 'HIGH'
-            elif ratio <= 1.25:
-                status = 'optimal'
-                priority = 'LOW'
-            else:
-                status = 'overstock'
-                priority = 'MEDIUM'
-            
-            # Calculate order quantity
-            if ratio < 1:
-                order_quantity = int(ideal - current)
-            else:
-                order_quantity = 0
-            
-            # Generate AI-enhanced action message
-            if status == 'critical_understock':
-                action = f"URGENT: Order {order_quantity} units immediately to prevent stockout"
-            elif status == 'understock':
-                action = f"Order {order_quantity} units to maintain optimal inventory"
-            elif status == 'optimal':
-                action = "Stock levels are optimal. Monitor regularly."
-            else:
-                action = f"Consider reducing stock by {int(current - ideal)} units"
-            
-            # Check expiry date if available
-            expiry_date = row.get('expiry_date', None)
-            days_left = ''
-            if expiry_date:
-                try:
-                    expiry = datetime.strptime(expiry_date, '%Y-%m-%d')
-                    today = datetime.now()
-                    days_remaining = (expiry - today).days
-                    
-                    if days_remaining <= 0:
-                        days_left = 'Expired'
-                        expiry_alerts.append(row)
-                    elif days_remaining <= 30:
-                        days_left = str(days_remaining)
-                        expiry_alerts.append(row)
-                except:
-                    pass
-            
-            recommendations.append({
-                'product_id': row['product_id'],
-                'product_name': row['product_name'],
-                'current_stock': int(current),
-                'ideal_stock': int(ideal),
-                'stock_ratio': round(ratio, 2),
-                'status': status,
-                'priority': priority,
-                'action': action,
-                'order_quantity': order_quantity,
-                'expiry_date': expiry_date if expiry_date else '',
-                'days_left': days_left
-            })
-        
-        return recommendations, expiry_alerts
-        
-    except Exception as e:
-        print(f"Error in analyze_data_with_ai: {e}")
-        return [], []
 def get_inventory_alert_email_html(critical, understock, overstock, analysis_time):
     """Generate beautiful HTML for inventory alert emails"""
     return f"""
@@ -348,6 +267,24 @@ def get_inventory_alert_email_html(critical, understock, overstock, analysis_tim
 
 def get_expiry_alert_email_html(expiry_items, analysis_time):
     """Generate beautiful HTML for expiry alert emails"""
+    expiry_html = ""
+    for item in expiry_items:
+        expired_class = "expired" if item.get('days_left') in ['Expired', 'Expires Today', '0'] else "expiring"
+        if item.get('days_left') == 'Expired':
+            status_html = '<span style="color:#dc2626;font-weight:bold;">EXPIRED</span>'
+        elif item.get('days_left') in ['Expires Today', '0']:
+            status_html = '<span style="color:#dc2626;font-weight:bold;">EXPIRES TODAY</span>'
+        else:
+            status_html = f'<span style="color:#f59e0b;font-weight:bold;">{item["days_left"]} days remaining</span>'
+        
+        expiry_html += f'''
+        <div class="expiry-item {expired_class}">
+          <div class="product-name">{item.get('product_name', 'Unknown Product')}</div>
+          <div>Expiry Date: <strong>{item.get('expiry_date', 'N/A')}</strong></div>
+          <div>{status_html}</div>
+          <div>Stock: <strong>{item.get('current_stock', 0)} units</strong></div>
+        </div>'''
+    
     return f"""
     <!DOCTYPE html>
     <html>
@@ -418,17 +355,7 @@ def get_expiry_alert_email_html(expiry_items, analysis_time):
           <p>Products expiring soon</p>
         </div>
         <div class="content">
-          {''.join([
-            f'''<div class="expiry-item {'expired' if item['days_left'] == 'Expired' else 'expiring'}">
-              <div class="product-name">{item['product_name']}</div>
-              <div>Expiry Date: <strong>{item['expiry_date']}</strong></div>
-              <div>
-                {'<span style="color:#dc2626;font-weight:bold;">EXPIRED</span>' if item['days_left'] == 'Expired' else f'<span style="color:#f59e0b;font-weight:bold;">{item["days_left"]} days remaining</span>'}
-              </div>
-              <div>Stock: <strong>{item['current_stock']} units</strong></div>
-            </div>'''
-            for item in expiry_items
-          ])}
+          {expiry_html}
         </div>
         <div class="footer">
           Generated by <strong>InventoryPro</strong> on {analysis_time}
@@ -451,7 +378,6 @@ def send_inventory_alert(recommendations, receiver_email):
         subject = "🚨 InventoryPro Alert - Critical Stock Changes"
         analysis_time = time.strftime('%Y-%m-%d %H:%M:%S')
         
-        # Use the beautiful HTML template
         html_content = get_inventory_alert_email_html(critical, understock, overstock, analysis_time)
 
         msg = MIMEMultipart('alternative')
@@ -461,6 +387,7 @@ def send_inventory_alert(recommendations, receiver_email):
         msg.attach(MIMEText(html_content, 'html'))
 
         server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.set_debuglevel(1)
         server.starttls()
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
         server.sendmail(SENDER_EMAIL, receiver_email, msg.as_string())
@@ -471,7 +398,6 @@ def send_inventory_alert(recommendations, receiver_email):
         print(f"❌ Error sending inventory alert email: {e}")
         return False
 
-
 def send_expiry_alert(expiry_items, receiver_email):
     try:
         if not expiry_items:
@@ -481,7 +407,6 @@ def send_expiry_alert(expiry_items, receiver_email):
         subject = "⏰ InventoryPro Alert - Products Expiring Soon"
         analysis_time = time.strftime('%Y-%m-%d %H:%M:%S')
         
-        # Use the beautiful HTML template
         html_content = get_expiry_alert_email_html(expiry_items, analysis_time)
 
         msg = MIMEMultipart('alternative')
@@ -491,6 +416,7 @@ def send_expiry_alert(expiry_items, receiver_email):
         msg.attach(MIMEText(html_content, 'html'))
 
         server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.set_debuglevel(1)
         server.starttls()
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
         server.sendmail(SENDER_EMAIL, receiver_email, msg.as_string())
@@ -501,6 +427,62 @@ def send_expiry_alert(expiry_items, receiver_email):
         print(f"❌ Error sending expiry alert email: {e}")
         return False
 
+def send_combined_alerts(recommendations, receiver_email):
+    """Send both inventory and expiry alerts"""
+    alerts_sent = []
+    
+    try:
+        success_inv = send_inventory_alert(recommendations, receiver_email)
+        if success_inv:
+            alerts_sent.append("📦 Inventory Alert")
+    except Exception as e:
+        print(f"Error sending inventory alert: {e}")
+    
+    try:
+        expiry_items = []
+        for item in recommendations:
+            expiry_date = item.get('expiry_date', '').strip()
+            days_left = item.get('days_left', '').strip()
+            
+            if (days_left in ['Expired', 'Expires Today'] or 
+                days_left == '0' or 
+                (days_left.isdigit() and int(days_left) <= 30)):
+                expiry_items.append(item)
+        
+        print(f"📅 Found {len(expiry_items)} expiring/expired items")
+        
+        if expiry_items:
+            success_exp = send_expiry_alert(expiry_items, receiver_email)
+            if success_exp:
+                alerts_sent.append("⏰ Expiry Alert")
+    except Exception as e:
+        print(f"Error sending expiry alert: {e}")
+    
+    return alerts_sent
+
+@app.route('/test-simple-email')
+def test_simple_email():
+    """Test route to debug email sending"""
+    try:
+        receiver_email = get_receiver_email()
+        if not receiver_email:
+            return "❌ No receiver email configured. Go to Email Settings first."
+        
+        message = MIMEText("Test email from InventoryPro", "plain")
+        message["Subject"] = "Test Email"
+        message["From"] = SENDER_EMAIL
+        message["To"] = receiver_email
+        
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.set_debuglevel(1)
+        server.starttls()
+        server.login(SENDER_EMAIL, SENDER_PASSWORD)
+        server.sendmail(SENDER_EMAIL, receiver_email, message.as_string())
+        server.quit()
+        
+        return f"✅ Test email sent successfully to {receiver_email}!"
+    except Exception as e:
+        return f"❌ Email failed: {str(e)}"
 
 def create_chart(recommendations):
     try:
@@ -533,12 +515,10 @@ def create_chart(recommendations):
         return None
 
 def analyze_data(df):
-    """AI-powered analysis that calculates ideal stock automatically and compares to previous upload."""
+    """AI-powered analysis with FIXED expiry date handling"""
     results = []
     expiry_alerts = []
-    now = datetime.today().date()
 
-    # Load historical data for comparison
     try:
         with open('inventory_history.json', 'r') as f:
             historical_data = json.load(f)
@@ -616,28 +596,61 @@ def analyze_data(df):
                 priority = "LOW"
                 action = "Stock level is good"
 
-            # Handle expiry dates
+            # 🔧 FIXED EXPIRY LOGIC - Always uses current date
             expiry_date_str = ""
             days_left_text = ""
+            
+            # Find expiry date from any column
             for col in ['expiry_date', 'Expiry', 'expiry']:
                 if col in df.columns and pd.notnull(row[col]):
-                    expiry_date_str = str(row[col]).strip()
-                    break
+                    raw_date = str(row[col]).strip()
+                    if raw_date and raw_date not in ['nan', 'None', '', 'NaT']:
+                        expiry_date_str = raw_date
+                        print(f"📅 Raw expiry date for {product_name}: '{expiry_date_str}'")
+                        break
 
-            expiry_obj = None
             if expiry_date_str:
-                try:
-                    expiry_obj = datetime.strptime(expiry_date_str, '%d-%m-%Y').date()
-                except:
+                # Try multiple date formats
+                date_formats = ['%Y-%m-%d', '%d-%m-%Y', '%d/%m/%Y', '%Y/%m/%d', '%m/%d/%Y']
+                expiry_obj = None
+                
+                for fmt in date_formats:
                     try:
-                        expiry_obj = datetime.strptime(expiry_date_str, '%Y-%m-%d').date()
+                        expiry_obj = datetime.strptime(expiry_date_str, fmt).date()
+                        break
                     except:
-                        expiry_obj = None
+                        continue
+                
                 if expiry_obj:
-                    delta = (expiry_obj - now).days
-                    if delta >= 0:
-                        days_left_text = str(delta)
-                        if delta <= 7:
+                    # 🚀 KEY FIX: Always use current system date
+                    today = datetime.now().date()
+                    delta_days = (expiry_obj - today).days
+                    
+                    print(f"🔍 {product_name}: Expiry={expiry_obj}, Today={today}, Delta={delta_days}")
+                    
+                    if delta_days < 0:
+                        days_left_text = "Expired"
+                        print(f"✅ {product_name} marked as EXPIRED")
+                        expiry_alerts.append({
+                            'product_id': product_id,
+                            'product_name': product_name,
+                            'current_stock': int(current_stock),
+                            'expiry_date': expiry_obj.strftime('%Y-%m-%d'),
+                            'days_left': days_left_text
+                        })
+                    elif delta_days == 0:
+                        days_left_text = "Expires Today"
+                        print(f"✅ {product_name} marked as EXPIRES TODAY")
+                        expiry_alerts.append({
+                            'product_id': product_id,
+                            'product_name': product_name,
+                            'current_stock': int(current_stock),
+                            'expiry_date': expiry_obj.strftime('%Y-%m-%d'),
+                            'days_left': days_left_text
+                        })
+                    else:
+                        days_left_text = str(delta_days)
+                        if delta_days <= 30:
                             expiry_alerts.append({
                                 'product_id': product_id,
                                 'product_name': product_name,
@@ -645,8 +658,15 @@ def analyze_data(df):
                                 'expiry_date': expiry_obj.strftime('%Y-%m-%d'),
                                 'days_left': days_left_text
                             })
-                    else:
-                        days_left_text = "Expired"
+                    
+                    # Store standardized date
+                    expiry_date_str = expiry_obj.strftime('%Y-%m-%d')
+                else:
+                    print(f"❌ Could not parse expiry date '{expiry_date_str}' for {product_name}")
+                    days_left_text = ""
+                    expiry_date_str = ""
+            else:
+                days_left_text = ""
 
             results.append({
                 'product_id': product_id,
@@ -656,14 +676,14 @@ def analyze_data(df):
                 'status': status,
                 'priority': priority,
                 'action': action,
-                'expiry_date': expiry_obj.strftime('%Y-%m-%d') if expiry_obj else '',
+                'expiry_date': expiry_date_str,
                 'days_left': days_left_text,
                 'trend': trend
             })
         except Exception as e:
             print(f"Error processing row {idx}: {e}")
 
-        # Save current data for next comparison
+        # Save historical data
         try:
             historical_data.append({
                 'product_id': product_id,
@@ -671,7 +691,6 @@ def analyze_data(df):
                 'current_stock': current_stock,
                 'upload_timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
             })
-            # Keep last 100 records
             if len(historical_data) > 100:
                 historical_data = historical_data[-100:]
             with open('inventory_history.json', 'w') as f:
@@ -679,17 +698,21 @@ def analyze_data(df):
         except Exception as e:
             print(f"Error saving history: {e}")
 
+    print(f"✅ Analysis complete! Found {len(expiry_alerts)} expiring items")
     return results, expiry_alerts
+
+
 
 def get_all_analyses():
     """Get list of all previous analyses"""
     try:
         results_folder = app.config['RESULTS_FOLDER']
         if not os.path.exists(results_folder):
+            os.makedirs(results_folder, exist_ok=True)
             return []
             
         files = [f for f in os.listdir(results_folder) if f.startswith('results_') and f.endswith('.json')]
-        files.sort(reverse=True)  # Latest first
+        files.sort(reverse=True)
         
         analyses = []
         for filename in files:
@@ -697,10 +720,10 @@ def get_all_analyses():
                 filepath = os.path.join(results_folder, filename)
                 with open(filepath, 'r') as f:
                     data = json.load(f)
-
-                timestamp = filename.split('_')[1].split('.')[0]
-                readable_date = datetime.fromtimestamp(int(timestamp)).strftime('%Y-%m-%d %H:%M:%S')
                 
+                timestamp_part = filename.split('_')[1].split('.')[0]
+                readable_date = datetime.fromtimestamp(int(timestamp_part)).strftime('%Y-%m-%d %H:%M:%S')
+
                 analyses.append({
                     'filename': filename,
                     'timestamp': readable_date,
@@ -737,6 +760,7 @@ def view_previous_analysis(filename):
     except Exception as e:
         flash(f'Error loading analysis: {str(e)}', 'error')
         return redirect(url_for('previous_analyses'))
+
 @app.route('/delete-analysis/<filename>', methods=['POST'])
 def delete_analysis(filename):
     """Delete a specific analysis file"""
@@ -754,21 +778,29 @@ def delete_analysis(filename):
 
 @app.route('/clear-all-analyses', methods=['POST'])
 def clear_all_analyses():
-    """Delete all analysis files"""
+    """Delete all analysis files AND clear duplicate detection cache"""
     try:
+        files_deleted = 0
+        
+        # Clear analysis results
         results_folder = app.config['RESULTS_FOLDER']
         if os.path.exists(results_folder):
             files = [f for f in os.listdir(results_folder) if f.startswith('results_') and f.endswith('.json')]
             for file in files:
                 os.remove(os.path.join(results_folder, file))
+                files_deleted += len(files)
+        
+        # 🔧 KEY FIX: Clear file hash cache to allow re-uploads
+        if os.path.exists('file_hashes.json'):
+            os.remove('file_hashes.json')
+            print("✅ Cleared duplicate detection cache")
+        
+        # Clear latest results pointer
+        if os.path.exists('latest_results.txt'):
+            os.remove('latest_results.txt')
             
-            # Also clear latest_results.txt
-            if os.path.exists('latest_results.txt'):
-                os.remove('latest_results.txt')
-                
-            flash(f'✅ All {len(files)} analyses cleared successfully!', 'success')
-        else:
-            flash('❌ No analyses found to clear!', 'info')
+        flash(f'✅ All {files_deleted} analyses cleared! You can now re-upload files.', 'success')
+        
     except Exception as e:
         flash(f'❌ Error clearing analyses: {str(e)}', 'error')
     
@@ -783,7 +815,6 @@ def send_alert(filename):
             flash('❌ Analysis not found!', 'error')
             return redirect(url_for('previous_analyses'))
         
-        # Load the analysis data
         with open(filepath, 'r') as f:
             data = json.load(f)
         
@@ -794,33 +825,8 @@ def send_alert(filename):
             flash('⚠️ Email not configured!', 'warning')
             return redirect(url_for('previous_analyses'))
         
-        alerts_sent = []
+        alerts_sent = send_combined_alerts(recommendations, receiver_email)
         
-        # 1. Send inventory alert (always)
-        try:
-            send_inventory_alert(recommendations, receiver_email)
-            alerts_sent.append("📦 Inventory Alert")
-        except Exception as e:
-            print(f"Error sending inventory alert: {e}")
-        
-        # 2. Send expiry alert (if there are items with expiry dates)
-        expiry_items = []
-        for item in recommendations:
-            if (item.get('days_left') and 
-                item.get('days_left') != '' and 
-                item.get('days_left') != 'N/A' and
-                item.get('expiry_date') and 
-                item.get('expiry_date') != ''):
-                expiry_items.append(item)
-        
-        if expiry_items:
-            try:
-                send_expiry_alert(expiry_items, receiver_email)
-                alerts_sent.append("⏰ Expiry Alert")
-            except Exception as e:
-                print(f"Error sending expiry alert: {e}")
-        
-        # Show success message
         if alerts_sent:
             alerts_text = " & ".join(alerts_sent)
             flash(f'✅ {alerts_text} sent successfully!', 'success')
@@ -832,11 +838,10 @@ def send_alert(filename):
     except Exception as e:
         flash(f'❌ Error sending alerts: {str(e)}', 'error')
         return redirect(url_for('previous_analyses'))
-     
-    
+
 @app.route('/send-current-alert', methods=['POST'])
 def send_current_alert():
-    """Send alert for current loaded results"""
+    """Send BOTH alerts for current loaded results"""
     try:
         result_data = load_results()
         if not result_data:
@@ -850,12 +855,13 @@ def send_current_alert():
             flash('⚠️ Email not configured!', 'warning')
             return redirect(url_for('results'))
         
-        success = send_inventory_alert(recommendations, receiver_email)
+        alerts_sent = send_combined_alerts(recommendations, receiver_email)
         
-        if success:
-            flash('✅ Alert email sent successfully!', 'success')
+        if alerts_sent:
+            alerts_text = " & ".join(alerts_sent)
+            flash(f'✅ {alerts_text} sent successfully!', 'success')
         else:
-            flash('❌ Failed to send alert email.', 'error')
+            flash('❌ Failed to send alerts. Check email configuration.', 'error')
             
         return redirect(url_for('results'))
         
@@ -879,22 +885,17 @@ def upload_file():
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], f"{timestamp}_{filename}")
             file.save(filepath)
             
-            # Check for duplicate files
             file_hash = calculate_file_hash(filepath)
             if is_duplicate_file(file_hash):
                 os.remove(filepath)
                 flash('⚠️ This file has already been uploaded! Showing previous analysis.', 'warning')
                 return redirect(url_for('results'))
             
-            # Save file hash to prevent future duplicates
             save_file_hash(file_hash, filename, timestamp)
             
             df = pd.read_csv(filepath)
             
-            # Use AI-enhanced analysis
             recommendations, expiry_alerts = analyze_data(df)
-
-
             chart = create_chart(recommendations)
             
             summary = {
@@ -913,20 +914,19 @@ def upload_file():
                 'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
             }
             
-            # Save the results
             save_results(results)
             
-            # Send email notifications if configured
             receiver_email = get_receiver_email()
             if receiver_email:
-                send_email_async(send_inventory_alert, recommendations, receiver_email)
-                if expiry_alerts:
-                    send_email_async(send_expiry_alert, expiry_alerts, receiver_email)
-                flash('🤖 AI Analysis complete! Email alert sent.', 'success')
+                alerts_sent = send_combined_alerts(recommendations, receiver_email)
+                if alerts_sent:
+                    alerts_text = " & ".join(alerts_sent)
+                    flash(f'🤖 AI Analysis complete! {alerts_text} sent.', 'success')
+                else:
+                    flash('🤖 AI Analysis complete! Check email configuration.', 'warning')
             else:
                 flash('🤖 AI Analysis complete! Configure email to receive alerts.', 'info')
             
-            # Clean up and redirect
             os.remove(filepath)
             return redirect(url_for('results'))
             
@@ -936,7 +936,6 @@ def upload_file():
                 os.remove(filepath)
     
     return render_template('upload.html', form=form, history=load_history())
-
 
 @app.route('/results')
 def results():
@@ -950,8 +949,8 @@ def results():
 def use_sample_data():
     try:
         sample_df = pd.DataFrame([
-            {'product_id': 'P001', 'product_name': 'Fresh Apples', 'current_stock': 45, 'ideal_stock_level': 100, 'expiry_date': '21-08-2025'},
-            {'product_id': 'P002', 'product_name': 'Bananas', 'current_stock': 180, 'ideal_stock_level': 120, 'expiry_date': '21-08-2025'}
+            {'product_id': 'P001', 'product_name': 'Fresh Apples', 'current_stock': 45, 'expiry_date': '21-08-2025'},
+            {'product_id': 'P002', 'product_name': 'Bananas', 'current_stock': 180, 'expiry_date': '18-08-2025'}
         ])
         recommendations, expiry_alerts = analyze_data(sample_df)
 
@@ -973,10 +972,12 @@ def use_sample_data():
         save_results(results)
         receiver_email = get_receiver_email()
         if receiver_email:
-            send_email_async(send_inventory_alert, recommendations, receiver_email)
-            if expiry_alerts:
-                send_email_async(send_expiry_alert, expiry_alerts, receiver_email)
-            flash('Sample data analyzed! Email alert sent.', 'success')
+            alerts_sent = send_combined_alerts(recommendations, receiver_email)
+            if alerts_sent:
+                alerts_text = " & ".join(alerts_sent)
+                flash(f'Sample data analyzed! {alerts_text} sent.', 'success')
+            else:
+                flash('Sample data analyzed! Check email configuration.', 'warning')
         else:
             flash('Sample data analyzed! Configure email to receive alerts.', 'info')
         return redirect(url_for('results'))
@@ -1018,6 +1019,63 @@ def test_email():
     else:
         flash('Failed to send test email. Check email configuration.', 'error')
     return redirect(url_for('index'))
+@app.route('/clear-all-data', methods=['POST'])
+def clear_all_data():
+    """Clear ALL data including analyses, hashes, and history"""
+    try:
+        files_deleted = 0
+        
+        # 1. Clear analysis results
+        results_folder = app.config['RESULTS_FOLDER']
+        if os.path.exists(results_folder):
+            files = [f for f in os.listdir(results_folder) if f.startswith('results_') and f.endswith('.json')]
+            for file in files:
+                os.remove(os.path.join(results_folder, file))
+                files_deleted += len(files)
+        
+        # 2. Clear file hash cache (THIS IS KEY!)
+        if os.path.exists('file_hashes.json'):
+            os.remove('file_hashes.json')
+            print("✅ Cleared file hash cache")
+        
+        # 3. Clear upload history
+        if os.path.exists('upload_history.json'):
+            os.remove('upload_history.json')
+            print("✅ Cleared upload history")
+        
+        # 4. Clear inventory history
+        if os.path.exists('inventory_history.json'):
+            os.remove('inventory_history.json')
+            print("✅ Cleared inventory history")
+        
+        # 5. Clear latest results pointer
+        if os.path.exists('latest_results.txt'):
+            os.remove('latest_results.txt')
+            print("✅ Cleared latest results")
+        
+        flash(f'✅ All data cleared successfully! ({files_deleted} files removed)', 'success')
+        
+    except Exception as e:
+        flash(f'❌ Error clearing data: {str(e)}', 'error')
+    
+    return redirect(url_for('index'))
+
+@app.route('/debug-files')
+def debug_files():
+    """Debug route to see what files exist"""
+    files_info = {
+        'file_hashes.json': os.path.exists('file_hashes.json'),
+        'upload_history.json': os.path.exists('upload_history.json'),
+        'inventory_history.json': os.path.exists('inventory_history.json'),
+        'latest_results.txt': os.path.exists('latest_results.txt'),
+        'results_folder': os.path.exists(app.config['RESULTS_FOLDER']),
+    }
+    
+    if os.path.exists('file_hashes.json'):
+        with open('file_hashes.json', 'r') as f:
+            files_info['cached_hashes'] = len(json.load(f))
+    
+    return f"<pre>{json.dumps(files_info, indent=2)}</pre>"
 
 @app.route('/clear-session')
 def clear_session():
