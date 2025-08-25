@@ -701,8 +701,6 @@ def analyze_data(df):
     print(f"✅ Analysis complete! Found {len(expiry_alerts)} expiring items")
     return results, expiry_alerts
 
-
-
 def get_all_analyses():
     """Get list of all previous analyses"""
     try:
@@ -1019,6 +1017,7 @@ def test_email():
     else:
         flash('Failed to send test email. Check email configuration.', 'error')
     return redirect(url_for('index'))
+
 @app.route('/clear-all-data', methods=['POST'])
 def clear_all_data():
     """Clear ALL data including analyses, hashes, and history"""
