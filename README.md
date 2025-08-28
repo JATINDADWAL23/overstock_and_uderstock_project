@@ -6,7 +6,7 @@ A smart Flask-based inventory management system that analyzes stock levels, pred
 ![Python](https://img.shields.io/badge/Python-3.7%2B-blue)
 ![Flask](https://img.shields.io/badge/Flask-2.0%2B-lightgrey)
 
-## Features
+## Features :
 
 - **AI Stock Analysis** - Automatically calculates ideal stock levels
 - **Visual Dashboard** - Interactive charts and summary cards
