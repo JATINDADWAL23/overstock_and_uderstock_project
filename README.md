@@ -52,7 +52,7 @@ P003,Cheese 200g,15,2025-08-21
 
 ## Understanding Results
 
-### Dashboard Cards
+### Dashboard  Cards
 - **Blue Card** - Total items analyzed
 - **Red Card** - Critical items needing immediate attention
 - **Yellow Card** - Items that need restocking
