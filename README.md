@@ -11,7 +11,7 @@ A smart Flask-based inventory management system that analyzes stock levels, pred
 - **AI Stock Analysis** - Automatically calculates ideal stock levels
 - **Visual Dashboard** - Interactive charts and summary cards
 - **Email Alerts** - Beautiful HTML email notifications
-- **Historical Data** - Track inventory trends over time
+- **Historical Data** - Track  inventory trends over time
 - **Mobile Responsive** - Works on all devices
 
 ## Quick Start
