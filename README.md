@@ -1,4 +1,4 @@
-# InventoryPro - AI Inventory Management System
+ # InventoryPro - AI Inventory Management System
 
 A smart Flask-based inventory management system that analyzes stock levels, predicts optimal inventory, and sends email alerts.
 
